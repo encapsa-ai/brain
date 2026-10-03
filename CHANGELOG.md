@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-10-03
+
+### Fixed
+
+- Connectors are continuous by default across SVG and WebGL. `edgePattern="declared"` explicitly enables preset dash patterns; WebGL dashes now scale with edge length and retain both endpoints instead of dropping coarse sections.
+- Inspector relationship badges count unique edges, including self-edge cases.
+- Information-type headings have shared border spacing rather than requiring dashboard-specific CSS.
+
+### Added
+
+- Reusable `BrainPicker`, `BrainConnectionPicker`, `BrainKindFilters`, and `BrainCopyField` components, using React/React DOM only.
+- Keyboard-accessible icon pickers and full-field hover/focus disclosure with honest clipboard success/failure feedback.
+- `inspectorOptions` for shared label customization and optional completeness, unknown versions, metadata footer, and directed-path controls. Path finding remains implemented and tested but is hidden by default.
+- Optional `copyable` on authorized-detail fields, independent of field-label conventions.
+
+### Changed
+
+- Inspectors show versions only when supplied, use “Source” by default, hide the completeness row and metadata-only footer, and truncate copyable source fields to one line.
+- These defaults and styles live in the package, so all dashboard consumers inherit the fixes without local patches. Existing graph authorization, PHI notices, receipt evidence, and context actions remain intact.
+
 ## [0.1.2] - 2026-10-02
 
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "encapsa-brain-workspace",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Development workspace and interactive demo for @encapsa-dev/brain.",
   "homepage": "https://github.com/encapsa-ai/brain#readme",
   "repository": {

@@ -741,7 +741,7 @@ function ScopedProvider(props) {
     store.resume();
     return () => store.dispose();
   }, [store]);
-  const value = useMemo(() => ({ store, camera, preset, motion: props.motion ?? "system", autoFocus: props.autoFocus ?? true, nodeSize: props.nodeSize ?? defaultSize, layoutSeed: props.layoutSeed ?? "brain-v1", loadWebGLRenderer: props.loadWebGLRenderer, layoutAdapter: props.layoutAdapter, layoutWorkerFactory: props.layoutWorkerFactory, onDiagnostic: props.onDiagnostic, nodeStyleResolver: props.nodeStyleResolver, edgeStyleResolver: props.edgeStyleResolver }), [store, camera, preset, props.motion, props.autoFocus, props.nodeSize, props.layoutSeed, props.loadWebGLRenderer, props.layoutAdapter, props.layoutWorkerFactory, props.onDiagnostic, props.nodeStyleResolver, props.edgeStyleResolver]);
+  const value = useMemo(() => ({ store, camera, preset, motion: props.motion ?? "system", autoFocus: props.autoFocus ?? true, nodeSize: props.nodeSize ?? defaultSize, layoutSeed: props.layoutSeed ?? "brain-v1", loadWebGLRenderer: props.loadWebGLRenderer, layoutAdapter: props.layoutAdapter, layoutWorkerFactory: props.layoutWorkerFactory, onDiagnostic: props.onDiagnostic, nodeStyleResolver: props.nodeStyleResolver, edgeStyleResolver: props.edgeStyleResolver, edgePattern: props.edgePattern ?? "continuous" }), [store, camera, preset, props.motion, props.autoFocus, props.nodeSize, props.layoutSeed, props.loadWebGLRenderer, props.layoutAdapter, props.layoutWorkerFactory, props.onDiagnostic, props.nodeStyleResolver, props.edgeStyleResolver, props.edgePattern]);
   return /* @__PURE__ */ jsx(Context.Provider, { value, children: props.children });
 }
 function useBrainContext() {
@@ -785,7 +785,10 @@ function useBrain() {
     select,
     selectEdge,
     nodeStyle: (node) => context.nodeStyleResolver?.(node, resolveNodeStyle(node.kind, context.preset)) ?? resolveNodeStyle(node.kind, context.preset),
-    edgeStyle: (edge) => context.edgeStyleResolver?.(edge, resolveEdgeStyle(edge.kind, context.preset)) ?? resolveEdgeStyle(edge.kind, context.preset)
+    edgeStyle: (edge) => {
+      const style = context.edgeStyleResolver?.(edge, resolveEdgeStyle(edge.kind, context.preset)) ?? resolveEdgeStyle(edge.kind, context.preset);
+      return context.edgePattern === "declared" ? style : { ...style, dashed: false };
+    }
   };
 }
 function useBrainLayout(dimensions = 3) {
@@ -865,6 +868,7 @@ export {
   stableHash,
   groupAncestors,
   groupMembers,
+  resolveNodeStyle,
   brainSurface,
   BrainProvider,
   useBrainContext,

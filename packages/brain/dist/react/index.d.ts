@@ -49,6 +49,7 @@ interface AuthorizedNodeDetails {
     readonly fields: readonly {
         readonly label: string;
         readonly value: string | number | boolean | null;
+        readonly copyable?: boolean;
     }[];
     readonly authorizedText?: string;
     readonly evidence?: readonly {
@@ -376,6 +377,8 @@ interface BrainProviderProps extends BrainStoreOptions {
     onDiagnostic?: DiagnosticListener;
     nodeStyleResolver?: (node: BrainNode, defaults: KindStyle) => KindStyle;
     edgeStyleResolver?: (edge: BrainEdge, defaults: EdgeKindStyle) => EdgeKindStyle;
+    /** Continuous by default in every renderer; opt into preset dash patterns. */
+    edgePattern?: 'continuous' | 'declared';
 }
 interface ContextValue {
     store: BrainStore;
@@ -391,6 +394,7 @@ interface ContextValue {
     onDiagnostic?: DiagnosticListener;
     nodeStyleResolver?: BrainProviderProps['nodeStyleResolver'];
     edgeStyleResolver?: BrainProviderProps['edgeStyleResolver'];
+    edgePattern: 'continuous' | 'declared';
 }
 declare function BrainProvider(props: BrainProviderProps): react_jsx_runtime.JSX.Element;
 declare function useBrainContext(): ContextValue;
@@ -427,6 +431,7 @@ declare function useBrain(): {
     onDiagnostic?: DiagnosticListener;
     nodeStyleResolver?: BrainProviderProps["nodeStyleResolver"];
     edgeStyleResolver?: BrainProviderProps["edgeStyleResolver"];
+    edgePattern: "continuous" | "declared";
 };
 declare function useBrainLayout(dimensions?: 2 | 3): LayoutResult;
 declare function useReducedMotion(): boolean;
@@ -445,13 +450,29 @@ interface BrainViewportProps {
 }
 declare function BrainViewport({ renderer, layout, forceWebGLFailure, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot, interactive, showLabels }: BrainViewportProps): react_jsx_runtime.JSX.Element;
 
+interface BrainInspectorOptions {
+    showUnknownVersion?: boolean;
+    showCompleteness?: boolean;
+    showMetadataFooter?: boolean;
+    /** Retained, but opt-in until the host supplies a useful directed graph. */
+    showDirectedPaths?: boolean;
+    labels?: Partial<{
+        source: string;
+        sourceEvidence: string;
+        version: string;
+        unknownVersion: string;
+        completeness: string;
+        metadataFooter: string;
+    }>;
+}
 interface BrainInspectorProps {
     renderNodeDetails?: (node: BrainNode) => ReactNode;
     renderNodeActions?: (node: BrainNode) => ReactNode;
     onClose?: () => void;
     showContextActions?: boolean;
+    inspectorOptions?: BrainInspectorOptions;
 }
-declare function BrainInspector({ renderNodeDetails, renderNodeActions, onClose, showContextActions }: BrainInspectorProps): react_jsx_runtime.JSX.Element | null;
+declare function BrainInspector({ renderNodeDetails, renderNodeActions, onClose, showContextActions, inspectorOptions }: BrainInspectorProps): react_jsx_runtime.JSX.Element | null;
 
 interface BrainContextTrayProps {
     onPreview?: (refs: readonly string[]) => void | Promise<void>;
@@ -512,8 +533,33 @@ declare function useExplorerFullscreen(ref: RefObject<HTMLElement | null>): {
 
 declare function BrainToolbar(): react_jsx_runtime.JSX.Element;
 
+declare function BrainKindFilters({ label, kindLabels }: {
+    label?: string;
+    kindLabels?: Readonly<Record<string, string>>;
+}): react_jsx_runtime.JSX.Element;
 declare function BrainTierNavigator({ onClose }: {
     onClose?: () => void;
+}): react_jsx_runtime.JSX.Element;
+
+interface BrainPickerOption<T extends string = string> {
+    value: T;
+    label: string;
+    icon?: ReactNode;
+    disabled?: boolean;
+}
+declare function BrainPicker<T extends string>({ label, value, options, onChange }: {
+    label: string;
+    value: T;
+    options: readonly BrainPickerOption<T>[];
+    onChange: (value: T) => void;
+}): react_jsx_runtime.JSX.Element;
+declare function BrainConnectionPicker({ label, labels }: {
+    label?: string;
+    labels?: readonly [string, string, string];
+}): react_jsx_runtime.JSX.Element;
+declare function BrainCopyField({ value, label }: {
+    value: string;
+    label?: string;
 }): react_jsx_runtime.JSX.Element;
 
 declare function BrainLegend(): react_jsx_runtime.JSX.Element;
@@ -525,4 +571,4 @@ declare function BrainAccessibleList({ className, showSearch }: {
 
 declare function BrainSvgRenderer({ width, height, active, interactive, showLabels }: ViewportRendererProps): react_jsx_runtime.JSX.Element;
 
-export { type AuthorizedNodeDetails as A, type BrainController as B, BrainAccessibleList, BrainContextTray, type BrainContextTrayProps, BrainExplorer, type BrainExplorerProps, BrainExplorerShell, type BrainExplorerShellProps, BrainInspector, type BrainInspectorProps, BrainLegend, BrainPreview, type BrainPreviewProps, BrainProvider, type BrainProviderProps, BrainResolutionPanel, BrainSvgRenderer, BrainTierNavigator, BrainToolbar, BrainViewport, type BrainViewportProps, type CameraCommand as C, type DetailsLoader as D, type EdgeId as E, type ExplorerMode, type GraphIndex as G, type JsonValue as J, type KindStyle as K, type LayoutAdapter as L, type NodeId as N, type ObservationAssociation as O, type Position3 as P, type RendererKind as R, type SectionObservation as S, type TierDefinition as T, type ViewState as V, ViewportRendererProps, type WebGLRendererLoader, type BrainDataSource as a, type BrainEdge as b, type BrainFilters as c, type BrainGraph as d, type BrainHierarchy as e, type BrainNode as f, type BrainPreset as g, type CameraState as h, type Diagnostic as i, type DiagnosticEvent as j, type DiagnosticListener as k, type EdgeKindStyle as l, type EvidenceOrigin as m, type GraphProjection as n, type LayoutInput as o, type LayoutKind as p, type LayoutResult as q, type NodeShape as r, type NodeSizeOptions as s, type ObservationMatch as t, type PresentationEdge as u, useBrain, useBrainContext, useBrainLayout, useExplorerFullscreen, useReducedMotion, type PresentationGroup as v, type PresentationMembership as w, type PresentationNode as x, type ResolutionObservation as y };
+export { type AuthorizedNodeDetails as A, type BrainController as B, BrainAccessibleList, BrainConnectionPicker, BrainContextTray, type BrainContextTrayProps, BrainCopyField, BrainExplorer, type BrainExplorerProps, BrainExplorerShell, type BrainExplorerShellProps, BrainInspector, type BrainInspectorOptions, type BrainInspectorProps, BrainKindFilters, BrainLegend, BrainPicker, type BrainPickerOption, BrainPreview, type BrainPreviewProps, BrainProvider, type BrainProviderProps, BrainResolutionPanel, BrainSvgRenderer, BrainTierNavigator, BrainToolbar, BrainViewport, type BrainViewportProps, type CameraCommand as C, type DetailsLoader as D, type EdgeId as E, type ExplorerMode, type GraphIndex as G, type JsonValue as J, type KindStyle as K, type LayoutAdapter as L, type NodeId as N, type ObservationAssociation as O, type Position3 as P, type RendererKind as R, type SectionObservation as S, type TierDefinition as T, type ViewState as V, ViewportRendererProps, type WebGLRendererLoader, type BrainDataSource as a, type BrainEdge as b, type BrainFilters as c, type BrainGraph as d, type BrainHierarchy as e, type BrainNode as f, type BrainPreset as g, type CameraState as h, type Diagnostic as i, type DiagnosticEvent as j, type DiagnosticListener as k, type EdgeKindStyle as l, type EvidenceOrigin as m, type GraphProjection as n, type LayoutInput as o, type LayoutKind as p, type LayoutResult as q, type NodeShape as r, type NodeSizeOptions as s, type ObservationMatch as t, type PresentationEdge as u, useBrain, useBrainContext, useBrainLayout, useExplorerFullscreen, useReducedMotion, type PresentationGroup as v, type PresentationMembership as w, type PresentationNode as x, type ResolutionObservation as y };

@@ -36,7 +36,7 @@ export interface AuthorizedNodeDetails {
   readonly scopeKey: string
   readonly graphRevision: string
   readonly nodeId: string
-  readonly fields: readonly { readonly label: string; readonly value: string | number | boolean | null }[]
+  readonly fields: readonly { readonly label: string; readonly value: string | number | boolean | null; readonly copyable?: boolean }[]
   readonly authorizedText?: string
   readonly evidence?: readonly { readonly label: string; readonly locator?: string }[]
 }

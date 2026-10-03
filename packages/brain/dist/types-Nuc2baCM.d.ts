@@ -44,6 +44,7 @@ interface AuthorizedNodeDetails {
     readonly fields: readonly {
         readonly label: string;
         readonly value: string | number | boolean | null;
+        readonly copyable?: boolean;
     }[];
     readonly authorizedText?: string;
     readonly evidence?: readonly {

@@ -1,4 +1,4 @@
-import { O as ObservationAssociation, J as JsonValue, E as EvidenceOrigin, B as BrainGraph, R as ResolutionObservation, a as BrainPreset } from '../../types-CxL1neFM.js';
+import { O as ObservationAssociation, J as JsonValue, E as EvidenceOrigin, B as BrainGraph, R as ResolutionObservation, a as BrainPreset } from '../../types-Nuc2baCM.js';
 
 interface ForgePackSummary {
     readonly pack_ref: string;

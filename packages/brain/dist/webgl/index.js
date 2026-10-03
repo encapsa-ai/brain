@@ -13,7 +13,7 @@ import {
   useBrain,
   useBrainLayout,
   useReducedMotion
-} from "../chunk-MXCBS66O.js";
+} from "../chunk-HMP6QWOA.js";
 
 // src/renderers/webgl/index.tsx
 import { useEffect as useEffect4, useMemo as useMemo3, useRef as useRef3, useState } from "react";
@@ -65,6 +65,20 @@ function BrainEnvelope({ quality, color }) {
 import { useEffect as useEffect2, useLayoutEffect, useMemo as useMemo2, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BufferGeometry as BufferGeometry2, Color as Color2, Float32BufferAttribute as Float32BufferAttribute2, Object3D, Vector3, Quaternion } from "three";
+
+// src/renderers/webgl/edge-intervals.ts
+function edgeIntervals(length, dashed, self = false) {
+  const safeLength = Number.isFinite(length) && length >= 0 ? length : 0;
+  const segments = self ? 64 : Math.max(24, Math.min(256, Math.ceil(safeLength / 0.055)));
+  const intervals = [];
+  for (let i = 0; i < segments; i++) {
+    if (dashed && i > 0 && i < segments - 1 && Math.floor(i / 2) % 2 === 1) continue;
+    intervals.push([i / segments, (i + 1) / segments]);
+  }
+  return intervals;
+}
+
+// src/renderers/webgl/GraphGeometry.tsx
 import { jsx as jsx2, jsxs as jsxs2 } from "react/jsx-runtime";
 function InstanceGroup({ nodes, shape, layout, moved, onHover }) {
   const { nodeStyle, select, selectedNodeId, index, nodeSize, observation, graph } = useBrain();
@@ -164,11 +178,9 @@ function GraphEdges({ layout }) {
       const a = new Vector3(...source), b = new Vector3(...target), delta = b.clone().sub(a);
       const self = edge.source === edge.target;
       const normal = delta.clone().cross(new Vector3(0, 0, 1)).normalize().multiplyScalar((stableHash(edge.id) % 9 - 4) * 0.02);
-      const segments = self ? 24 : 8;
       const point = (t) => self ? a.clone().add(new Vector3(Math.sin(t * Math.PI * 2) * 0.23, (1 - Math.cos(t * Math.PI * 2)) * 0.23, 0)) : a.clone().lerp(b, t).add(normal.clone().multiplyScalar(Math.sin(t * Math.PI)));
-      for (let i = 0; i < segments; i++) {
-        if (edgeStyle(edge).dashed && i % 2 === 0 && !focused) continue;
-        positions.push(...point(i / segments).toArray(), ...point((i + 1) / segments).toArray());
+      for (const [start, end] of edgeIntervals(delta.length(), !!edgeStyle(edge).dashed && !focused, self)) {
+        positions.push(...point(start).toArray(), ...point(end).toArray());
         colors.push(...color.toArray(), ...color.toArray());
       }
       if (edge.directed && focused) arrows.push({ point: point(0.68), direction: point(0.72).sub(point(0.64)).normalize(), color: base });

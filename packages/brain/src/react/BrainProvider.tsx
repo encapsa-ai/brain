@@ -31,6 +31,8 @@ export interface BrainProviderProps extends BrainStoreOptions {
   onDiagnostic?: DiagnosticListener
   nodeStyleResolver?: (node: BrainNode, defaults: KindStyle) => KindStyle
   edgeStyleResolver?: (edge: BrainEdge, defaults: EdgeKindStyle) => EdgeKindStyle
+  /** Continuous by default in every renderer; opt into preset dash patterns. */
+  edgePattern?: 'continuous' | 'declared'
 }
 interface ContextValue {
   store: BrainStore
@@ -46,6 +48,7 @@ interface ContextValue {
   onDiagnostic?: DiagnosticListener
   nodeStyleResolver?: BrainProviderProps['nodeStyleResolver']
   edgeStyleResolver?: BrainProviderProps['edgeStyleResolver']
+  edgePattern: 'continuous' | 'declared'
 }
 const Context = createContext<ContextValue | null>(null)
 const defaultSize: NodeSizeOptions = { metric: 'targetTokens', scale: 'sqrt', min: 4, max: 10, unknown: 3 }
@@ -66,7 +69,7 @@ function ScopedProvider(props: BrainProviderProps) {
   useLayoutEffect(() => { if (props.filters && props.filters !== store.getSnapshot().filters) store.setFilters(props.filters, true) }, [props.filters, store])
   useLayoutEffect(() => { if (props.view && props.view !== store.getSnapshot().view) store.setView(props.view, true) }, [props.view, store])
   useEffect(() => { store.resume(); return () => store.dispose() }, [store])
-  const value = useMemo<ContextValue>(() => ({ store, camera, preset, motion: props.motion ?? 'system', autoFocus: props.autoFocus ?? true, nodeSize: props.nodeSize ?? defaultSize, layoutSeed: props.layoutSeed ?? 'brain-v1', loadWebGLRenderer: props.loadWebGLRenderer, layoutAdapter: props.layoutAdapter, layoutWorkerFactory: props.layoutWorkerFactory, onDiagnostic: props.onDiagnostic, nodeStyleResolver: props.nodeStyleResolver, edgeStyleResolver: props.edgeStyleResolver }), [store, camera, preset, props.motion, props.autoFocus, props.nodeSize, props.layoutSeed, props.loadWebGLRenderer, props.layoutAdapter, props.layoutWorkerFactory, props.onDiagnostic, props.nodeStyleResolver, props.edgeStyleResolver])
+  const value = useMemo<ContextValue>(() => ({ store, camera, preset, motion: props.motion ?? 'system', autoFocus: props.autoFocus ?? true, nodeSize: props.nodeSize ?? defaultSize, layoutSeed: props.layoutSeed ?? 'brain-v1', loadWebGLRenderer: props.loadWebGLRenderer, layoutAdapter: props.layoutAdapter, layoutWorkerFactory: props.layoutWorkerFactory, onDiagnostic: props.onDiagnostic, nodeStyleResolver: props.nodeStyleResolver, edgeStyleResolver: props.edgeStyleResolver, edgePattern: props.edgePattern ?? 'continuous' }), [store, camera, preset, props.motion, props.autoFocus, props.nodeSize, props.layoutSeed, props.loadWebGLRenderer, props.layoutAdapter, props.layoutWorkerFactory, props.onDiagnostic, props.nodeStyleResolver, props.edgeStyleResolver, props.edgePattern])
   return <Context.Provider value={value}>{props.children}</Context.Provider>
 }
 export function useBrainContext() {
@@ -99,7 +102,10 @@ export function useBrain() {
   }
   return { ...context, ...snapshot, index, hierarchy, hierarchyErrors, projection, select, selectEdge,
     nodeStyle: (node: BrainNode) => context.nodeStyleResolver?.(node, resolveNodeStyle(node.kind, context.preset)) ?? resolveNodeStyle(node.kind, context.preset),
-    edgeStyle: (edge: BrainEdge) => context.edgeStyleResolver?.(edge, resolveEdgeStyle(edge.kind, context.preset)) ?? resolveEdgeStyle(edge.kind, context.preset),
+    edgeStyle: (edge: BrainEdge) => {
+      const style = context.edgeStyleResolver?.(edge, resolveEdgeStyle(edge.kind, context.preset)) ?? resolveEdgeStyle(edge.kind, context.preset)
+      return context.edgePattern === 'declared' ? style : { ...style, dashed: false }
+    },
   }
 }
 export function useBrainLayout(dimensions: 2 | 3 = 3): LayoutResult {
