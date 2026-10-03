@@ -10,7 +10,12 @@ export function useExplorerFullscreen(ref: RefObject<HTMLElement | null>) {
     if (!element) return
     previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     if (!overlayOnly && typeof element.requestFullscreen === 'function' && document.fullscreenEnabled) {
-      try { await element.requestFullscreen(); setMode('native'); element.focus(); return } catch { /* Embedded permissions can prohibit native fullscreen; the overlay remains honest. */ }
+      try {
+        await element.requestFullscreen()
+        setMode('native')
+        if (document.activeElement === previousFocus.current || !element.contains(document.activeElement)) element.focus()
+        return
+      } catch { /* Embedded permissions can prohibit native fullscreen; the overlay remains honest. */ }
     }
     setMode('overlay'); element.focus()
   }, [ref])

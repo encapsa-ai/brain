@@ -1183,7 +1183,7 @@ function useExplorerFullscreen(ref) {
       try {
         await element.requestFullscreen();
         setMode("native");
-        element.focus();
+        if (document.activeElement === previousFocus.current || !element.contains(document.activeElement)) element.focus();
         return;
       } catch {
       }

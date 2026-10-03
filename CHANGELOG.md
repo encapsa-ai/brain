@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Connectors are continuous by default across SVG and WebGL. `edgePattern="declared"` explicitly enables preset dash patterns; WebGL dashes now scale with edge length and retain both endpoints instead of dropping coarse sections.
 - Inspector relationship badges count unique edges, including self-edge cases.
 - Information-type headings have shared border spacing rather than requiring dashboard-specific CSS.
+- Native fullscreen completion preserves focus when the user has already moved to a control inside the explorer.
 
 ### Added
 
