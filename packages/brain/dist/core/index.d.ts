@@ -144,6 +144,12 @@ declare function createCameraBus(): {
     pause(): void;
 };
 type CameraBus = ReturnType<typeof createCameraBus>;
+interface FrameWindow {
+    readonly p50Ms: number;
+    readonly p95Ms: number;
+    readonly slowWindows: number;
+}
+declare function createFrameMonitor(): (time: number, moving: boolean) => FrameWindow | null;
 declare function nodeRadius(node: BrainNode, options: NodeSizeOptions, degree?: number): number;
 
 declare function regionIndex(node: BrainNode): number;
@@ -181,4 +187,4 @@ declare function createLayoutController(options?: {
     cancel(): void;
 };
 
-export { AuthorizedNodeDetails, BrainDataError, BrainDataSource, BrainEdge, BrainFilters, BrainGraph, BrainHierarchy, BrainNode, BrainPreset, type BrainSnapshot, type BrainStore, type BrainStoreOptions, type CameraBus, CameraCommand, CameraState, type DetailState, DetailsLoader, Diagnostic, EdgeKindStyle, type ForgeReference, GraphIndex, GraphProjection, KindStyle, LayoutAdapter, LayoutInput, LayoutKind, LayoutResult, type LayoutWorkerPort, type LayoutWorkerRequest, type LayoutWorkerResponse, NodeSizeOptions, ObservationMatch, Position3, ResolutionObservation, TierDefinition, ViewState, boundsFor, brainLayout, brainSurface, buildHierarchy, clamp, clusterLayout, composeGraphs, createBrainStore, createCameraBus, createFailureObservation, createGraphIndex, createLayoutController, defaultFilters, defaultNodeKinds, defaultView, emptyHierarchy, findDirectedPath, flatPreset, forgeNodeId, getHierarchy, groupAncestors, groupMembers, hasDirectedCycle, homeCamera, illustrativeStages, loadedDegree, matchObservation, metadataString, namespacedId, neighborhood, nodeRadius, parseForgeRef, projectGraph, regionIndex, resolveEdgeStyle, resolveNodeStyle, safeHref, snapshotId, stableHash, validateGraph, validateHierarchy };
+export { AuthorizedNodeDetails, BrainDataError, BrainDataSource, BrainEdge, BrainFilters, BrainGraph, BrainHierarchy, BrainNode, BrainPreset, type BrainSnapshot, type BrainStore, type BrainStoreOptions, type CameraBus, CameraCommand, CameraState, type DetailState, DetailsLoader, Diagnostic, EdgeKindStyle, type ForgeReference, type FrameWindow, GraphIndex, GraphProjection, KindStyle, LayoutAdapter, LayoutInput, LayoutKind, LayoutResult, type LayoutWorkerPort, type LayoutWorkerRequest, type LayoutWorkerResponse, NodeSizeOptions, ObservationMatch, Position3, ResolutionObservation, TierDefinition, ViewState, boundsFor, brainLayout, brainSurface, buildHierarchy, clamp, clusterLayout, composeGraphs, createBrainStore, createCameraBus, createFailureObservation, createFrameMonitor, createGraphIndex, createLayoutController, defaultFilters, defaultNodeKinds, defaultView, emptyHierarchy, findDirectedPath, flatPreset, forgeNodeId, getHierarchy, groupAncestors, groupMembers, hasDirectedCycle, homeCamera, illustrativeStages, loadedDegree, matchObservation, metadataString, namespacedId, neighborhood, nodeRadius, parseForgeRef, projectGraph, regionIndex, resolveEdgeStyle, resolveNodeStyle, safeHref, snapshotId, stableHash, validateGraph, validateHierarchy };

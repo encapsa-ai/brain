@@ -43,10 +43,10 @@ export function BrainViewport({ renderer, layout, forceWebGLFailure = false, ren
     return () => { observer.disconnect(); intersection.disconnect(); document.removeEventListener('visibilitychange', visibility) }
   }, [camera])
   useEffect(() => {
-    if (!usable3D || ready || size.width <= 0 || size.height <= 0) return
+    if (!usable3D || ready || !hasSize || !hasNodes || unavailable) return
     const timeout = setTimeout(() => { setFailure('initialization timeout'); onDiagnostic?.({ category: 'renderer-fallback', value: 1 }) }, 6500)
     return () => clearTimeout(timeout)
-  }, [usable3D, ready, attempt, size.width, size.height, onDiagnostic])
+  }, [usable3D, ready, initializationToken, hasSize, hasNodes, unavailable, onDiagnostic])
   useEffect(() => { onDiagnostic?.({ category: 'renderer-selected', value: choice === 'list' ? 2 : usable3D && ready ? 0 : 1, nodeCount: projection.nodes.length, edgeCount: projection.edges.length }) }, [choice, usable3D, ready, onDiagnostic, projection.nodes.length, projection.edges.length])
   const failed = wantsWebGL && (failure || forceWebGLFailure)
   const fail = (category: string) => { setFailure(category); setReadyToken(null); onDiagnostic?.({ category: 'renderer-fallback', value: 1 }) }

@@ -18,6 +18,29 @@ export function createCameraBus() {
   }
 }
 export type CameraBus = ReturnType<typeof createCameraBus>
+export interface FrameWindow {
+  readonly p50Ms: number
+  readonly p95Ms: number
+  readonly slowWindows: number
+}
+export function createFrameMonitor() {
+  let lastTime: number | null = null, slowWindows = 0
+  const intervals: number[] = []
+  return (time: number, moving: boolean): FrameWindow | null => {
+    if (!moving || !Number.isFinite(time) || time < 0) { lastTime = null; return null }
+    const elapsed = lastTime === null ? 0 : time - lastTime
+    lastTime = time
+    if (elapsed <= 0) return null
+    intervals.push(elapsed)
+    if (intervals.length < 90) return null
+    const sorted = [...intervals].sort((a, b) => a - b)
+    const p50Ms = sorted[45], p95Ms = sorted[85]
+    if (p95Ms > 75) slowWindows++
+    else if (p95Ms < 35) slowWindows = Math.max(0, slowWindows - 1)
+    intervals.length = 0
+    return { p50Ms, p95Ms, slowWindows }
+  }
+}
 export function nodeRadius(node: BrainNode, options: NodeSizeOptions, degree?: number): number {
   const value = options.metric === 'loadedDegree' ? degree : node.metrics?.[options.metric]
   if (value === null || value === undefined || !Number.isFinite(value) || value < 0) return options.unknown ?? options.min * 0.8

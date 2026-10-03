@@ -15,7 +15,7 @@ import {
   useBrain,
   useBrainLayout,
   useReducedMotion
-} from "./chunk-MXXIXEKJ.js";
+} from "./chunk-CEQNBTLN.js";
 
 // src/react/BrainExplorer.tsx
 import { forwardRef, useEffect as useEffect4, useId as useId5, useImperativeHandle, useRef as useRef4, useState as useState8 } from "react";
@@ -332,9 +332,12 @@ var RendererBoundary = class extends Component {
 function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot }) {
   const { view, store, projection, selectedNodeId, index, select, camera, dataStatus, onDiagnostic, loadWebGLRenderer } = useBrain();
   const ref = useRef2(null), [size, setSize] = useState3({ width: 0, height: 0 }), [visible, setVisible] = useState3(true);
-  const [failure, setFailure] = useState3(null), [ready, setReady] = useState3(false), [attempt, setAttempt] = useState3(0);
+  const [failure, setFailure] = useState3(null), [readyToken, setReadyToken] = useState3(null), [attempt, setAttempt] = useState3(0);
   const LazyWebGL = useMemo2(() => loadWebGLRenderer ? lazy(() => loadWebGLRenderer().then((module) => ({ default: module.BrainWebGLRenderer }))) : null, [loadWebGLRenderer, attempt]);
   const choice = renderer ?? view.renderer, wantsWebGL = choice === "auto" || choice === "webgl", usable3D = wantsWebGL && !!LazyWebGL && !failure && !forceWebGLFailure;
+  const hasSize = size.width > 0 && size.height > 0, hasNodes = projection.nodes.length > 0, unavailable = dataStatus === "unavailable";
+  const initializationToken = useMemo2(() => ({}), [usable3D, LazyWebGL, attempt, hasSize, hasNodes, unavailable]);
+  const ready = readyToken === initializationToken;
   useEffect2(() => {
     if (layout && layout !== view.layout) store.setView({ ...view, layout });
   }, [layout, store, view]);
@@ -360,23 +363,20 @@ function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtr
     };
   }, [camera]);
   useEffect2(() => {
-    setReady(false);
-  }, [attempt]);
-  useEffect2(() => {
-    if (!usable3D || ready || size.width <= 0 || size.height <= 0) return;
+    if (!usable3D || ready || !hasSize || !hasNodes || unavailable) return;
     const timeout = setTimeout(() => {
       setFailure("initialization timeout");
       onDiagnostic?.({ category: "renderer-fallback", value: 1 });
     }, 6500);
     return () => clearTimeout(timeout);
-  }, [usable3D, ready, attempt, size.width, size.height, onDiagnostic]);
+  }, [usable3D, ready, initializationToken, hasSize, hasNodes, unavailable, onDiagnostic]);
   useEffect2(() => {
     onDiagnostic?.({ category: "renderer-selected", value: choice === "list" ? 2 : usable3D && ready ? 0 : 1, nodeCount: projection.nodes.length, edgeCount: projection.edges.length });
   }, [choice, usable3D, ready, onDiagnostic, projection.nodes.length, projection.edges.length]);
   const failed = wantsWebGL && (failure || forceWebGLFailure);
   const fail = (category) => {
     setFailure(category);
-    setReady(false);
+    setReadyToken(null);
     onDiagnostic?.({ category: "renderer-fallback", value: 1 });
   };
   return /* @__PURE__ */ jsxs3(
@@ -420,7 +420,7 @@ function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtr
           /* @__PURE__ */ jsx4("p", { children: "Adjust the filters or supply an authorized graph." })
         ] }) : choice === "list" ? /* @__PURE__ */ jsx4(BrainAccessibleList, {}) : size.width > 0 && size.height > 0 ? /* @__PURE__ */ jsxs3(Fragment, { children: [
           (!usable3D || !ready) && /* @__PURE__ */ jsx4(BrainSvgRenderer, { ...size, active: !usable3D || !ready }),
-          usable3D && LazyWebGL && /* @__PURE__ */ jsx4("div", { className: `brain-webgl-layer ${ready ? "is-ready" : ""}`, children: /* @__PURE__ */ jsx4(RendererBoundary, { onError: () => fail("initialization"), children: /* @__PURE__ */ jsx4(Suspense, { fallback: null, children: /* @__PURE__ */ jsx4(LazyWebGL, { ...size, active: visible, onReady: () => setReady(true), onFailure: fail, renderExtra: renderExtraWebGL }) }) }, attempt) }),
+          usable3D && LazyWebGL && /* @__PURE__ */ jsx4("div", { className: `brain-webgl-layer ${ready ? "is-ready" : ""}`, children: /* @__PURE__ */ jsx4(RendererBoundary, { onError: () => fail("initialization"), children: /* @__PURE__ */ jsx4(Suspense, { fallback: null, children: /* @__PURE__ */ jsx4(LazyWebGL, { ...size, active: visible, onReady: () => setReadyToken(initializationToken), onFailure: fail, renderExtra: renderExtraWebGL }) }) }, attempt) }),
           choice === "webgl" && !loadWebGLRenderer && /* @__PURE__ */ jsx4("div", { className: "brain-renderer-notice", role: "status", children: "3D unsupported: register the optional WebGL renderer. 2D remains available." }),
           usable3D && !ready && /* @__PURE__ */ jsx4("div", { className: "brain-renderer-notice", role: "status", children: loadingSlot ?? "Preparing 3D \xB7 2D remains available" }),
           failed && /* @__PURE__ */ jsxs3("div", { className: "brain-renderer-notice", role: "status", children: [
@@ -430,7 +430,7 @@ function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtr
             ] }),
             /* @__PURE__ */ jsx4("button", { className: "brain-text-button", onClick: () => {
               setFailure(null);
-              setReady(false);
+              setReadyToken(null);
               setAttempt((value) => value + 1);
             }, disabled: forceWebGLFailure, children: "Retry 3D" })
           ] })
@@ -663,6 +663,7 @@ function BrainInspector({ renderNodeDetails, renderNodeActions, onClose }) {
         "No matching version-specific outcome is established for this entity."
       ] }),
       details.status === "loading" && /* @__PURE__ */ jsx7("p", { role: "status", className: "brain-help", children: "Loading authorized details\u2026" }),
+      details.status === "unavailable" && /* @__PURE__ */ jsx7("p", { role: "status", className: "brain-help", children: "Additional authorized details are unavailable. Loaded metadata remains visible." }),
       details.status === "ready" && /* @__PURE__ */ jsxs6("div", { className: "brain-detail-block", children: [
         /* @__PURE__ */ jsx7("h3", { children: "Authorized details" }),
         /* @__PURE__ */ jsx7("dl", { className: "brain-metadata", children: details.value.fields.map((field) => /* @__PURE__ */ jsxs6("div", { children: [
@@ -1082,7 +1083,18 @@ function BrainExplorerShell(props) {
       role: fullscreen.mode === "overlay" ? "dialog" : "region",
       "aria-modal": fullscreen.mode === "overlay" ? true : void 0,
       "aria-label": fullscreen.mode === "overlay" ? "Expanded explorer overlay, not native fullscreen" : "Brain Explorer",
+      onPointerDownCapture: (event) => {
+        if (!event.target.closest(".brain-auto-rotate")) camera.pause();
+      },
+      onKeyDownCapture: (event) => {
+        if (!event.target.closest(".brain-auto-rotate")) camera.pause();
+      },
       onKeyDown: (event) => {
+        if (event.key === "/" && !event.target.closest("input,textarea,select,[contenteditable=true]")) {
+          event.preventDefault();
+          search.current?.focus();
+          return;
+        }
         if (event.key !== "Escape") return;
         if (filters.query) {
           event.preventDefault();
@@ -1274,7 +1286,7 @@ function BrainExplorerShell(props) {
             graph.nodes.length > 1500 && projection.nodes.length < graph.nodes.length ? "Level-of-detail aggregation \xB7 " : "",
             "Scope isolated",
             /* @__PURE__ */ jsx11("span", { className: "brain-status-divider", children: "\xB7" }),
-            "No network calls"
+            "Host-authorized projection"
           ] })
         ] }),
         props.children

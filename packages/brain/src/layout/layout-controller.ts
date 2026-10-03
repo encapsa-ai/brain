@@ -21,7 +21,7 @@ export function createLayoutController(options: { workerFactory?: () => LayoutWo
       if (!custom && !options.workerFactory) return fallback()
       return new Promise(resolve => {
         const controller = new AbortController()
-        let worker: LayoutWorkerPort | undefined, timer: ReturnType<typeof setTimeout> | undefined, settled = false
+        let worker: LayoutWorkerPort | undefined, settled = false
         const finish = (result: LayoutResult | null) => {
           if (settled) return
           settled = true
@@ -41,7 +41,7 @@ export function createLayoutController(options: { workerFactory?: () => LayoutWo
         }
         pending = cancel
         input.signal?.addEventListener('abort', cancel, { once: true })
-        timer = setTimeout(degrade, options.timeoutMs ?? 1500)
+        const timer = setTimeout(degrade, options.timeoutMs ?? 1500)
         try {
           if (custom) {
             Promise.resolve(custom({ ...input, signal: controller.signal })).then(result => {

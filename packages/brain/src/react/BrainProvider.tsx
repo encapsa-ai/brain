@@ -106,16 +106,17 @@ export function useBrainLayout(dimensions: 2 | 3 = 3): LayoutResult {
   const input = useMemo(() => ({ graph: { ...graph, nodes: projection.nodes, edges: projection.edges }, seed: layoutSeed, dimensions }), [graph, projection, layoutSeed, dimensions])
   const key = `${graph.scopeKey}:${view.layout}:${dimensions}:${layoutSeed}`
   const bounded = useMemo(() => (view.layout === 'brain' ? brainLayout : clusterLayout)({ ...input, previous: previous.current?.key === key ? previous.current.value.positions : undefined }), [input, view.layout, key])
-  const [customResult, setCustomResult] = useState<{ key: string; result: LayoutResult } | null>(null)
-  useLayoutEffect(() => { previous.current = { key, value: customResult?.key === key && customResult.result.revision === graph.revision ? customResult.result : bounded } }, [key, bounded, customResult, graph.revision])
+  const [customResult, setCustomResult] = useState<{ key: string; input: typeof input; result: LayoutResult } | null>(null)
+  const currentResult = customResult?.key === key && customResult.input === input ? customResult.result : bounded
+  useLayoutEffect(() => { previous.current = { key, value: currentResult } }, [key, currentResult])
   useEffect(() => {
     if (!layoutAdapter && !layoutWorkerFactory) return
     const controller = createLayoutController({ workerFactory: layoutWorkerFactory, onFallback: () => onDiagnostic?.({ category: 'layout', value: 0 }) })
     const abort = new AbortController()
-    void controller.run({ ...input, previous: previous.current?.key === key ? previous.current.value.positions : undefined, signal: abort.signal }, view.layout, layoutAdapter).then(result => { if (result && !abort.signal.aborted) setCustomResult({ key, result }) })
+    void controller.run({ ...input, previous: previous.current?.key === key ? previous.current.value.positions : undefined, signal: abort.signal }, view.layout, layoutAdapter).then(result => { if (result && !abort.signal.aborted) setCustomResult({ key, input, result }) })
     return () => { abort.abort(); controller.cancel() }
   }, [input, layoutAdapter, layoutWorkerFactory, view.layout, key, onDiagnostic])
-  return customResult?.key === key && customResult.result.revision === graph.revision ? customResult.result : bounded
+  return currentResult
 }
 export function useReducedMotion() {
   const { motion } = useBrainContext()

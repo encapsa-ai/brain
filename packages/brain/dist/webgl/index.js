@@ -3,6 +3,7 @@
 import {
   brainSurface,
   clamp,
+  createFrameMonitor,
   homeCamera,
   loadedDegree,
   matchObservation,
@@ -12,7 +13,7 @@ import {
   useBrain,
   useBrainLayout,
   useReducedMotion
-} from "../chunk-MXXIXEKJ.js";
+} from "../chunk-CEQNBTLN.js";
 
 // src/renderers/webgl/index.tsx
 import { useEffect as useEffect4, useMemo as useMemo3, useRef as useRef3, useState } from "react";
@@ -217,7 +218,7 @@ function CameraRig({ layout, active, onReady, onFailure }) {
   const { camera: bus, projection, onDiagnostic } = useBrain(), reduced = useReducedMotion();
   const { camera, gl, invalidate, size, setDpr } = useThree();
   const controls = useRef2(null), transition = useRef2(null);
-  const frameTimes = useRef2([]), slowWindows = useRef2(0), lastFrame = useRef2(0);
+  const frameMonitor = useRef2(createFrameMonitor());
   const readyRef = useRef2(onReady);
   readyRef.current = onReady;
   const failureRef = useRef2(onFailure);
@@ -281,6 +282,7 @@ function CameraRig({ layout, active, onReady, onFailure }) {
     }
     if (!active) {
       transition.current = null;
+      frameMonitor.current(0, false);
       bus.pause();
     } else invalidate();
   }, [active, bus, invalidate]);
@@ -332,19 +334,11 @@ function CameraRig({ layout, active, onReady, onFailure }) {
     }
     orbit.update();
     if (orbit.autoRotate) invalidate();
-    const time = performance.now(), ms = time - lastFrame.current;
-    lastFrame.current = time;
-    if (ms > 0 && ms < 250 && (orbit.autoRotate || animation)) {
-      frameTimes.current.push(ms);
-      if (frameTimes.current.length === 90) {
-        const sorted = [...frameTimes.current].sort((a, b) => a - b), p95 = sorted[Math.floor(sorted.length * 0.95)];
-        onDiagnostic?.({ category: "frame-sample", durationMs: p95, value: sorted[45], nodeCount: projection.nodes.length, edgeCount: projection.edges.length });
-        if (p95 > 75) slowWindows.current++;
-        else if (p95 < 35) slowWindows.current = Math.max(0, slowWindows.current - 1);
-        if (slowWindows.current === 2) setDpr(1);
-        if (slowWindows.current >= 4) failureRef.current?.("slow-frames");
-        frameTimes.current = [];
-      }
+    const window = frameMonitor.current(performance.now(), orbit.autoRotate || !!animation);
+    if (window) {
+      onDiagnostic?.({ category: "frame-sample", durationMs: window.p95Ms, value: window.p50Ms, nodeCount: projection.nodes.length, edgeCount: projection.edges.length });
+      if (window.slowWindows === 2) setDpr(1);
+      if (window.slowWindows >= 4) failureRef.current?.("slow-frames");
     }
   });
   return null;

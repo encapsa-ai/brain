@@ -4,14 +4,14 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { Spherical, Vector3, PerspectiveCamera } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { useBrain, useReducedMotion } from '../../react/BrainProvider'
-import { clamp, homeCamera } from '../../core/camera'
+import { clamp, createFrameMonitor, homeCamera } from '../../core/camera'
 import type { LayoutResult } from '../../core/types'
 import type { ViewportRendererProps } from '../../react/renderer-types'
 export function CameraRig({ layout, active, onReady, onFailure }: { layout: LayoutResult } & Pick<ViewportRendererProps, 'active' | 'onReady' | 'onFailure'>) {
   const { camera: bus, projection, onDiagnostic } = useBrain(), reduced = useReducedMotion()
   const { camera, gl, invalidate, size, setDpr } = useThree()
   const controls = useRef<OrbitControls | null>(null), transition = useRef<{ position: Vector3; target: Vector3 } | null>(null)
-  const frameTimes = useRef<number[]>([]), slowWindows = useRef(0), lastFrame = useRef(0)
+  const frameMonitor = useRef(createFrameMonitor())
   const readyRef = useRef(onReady); readyRef.current = onReady
   const failureRef = useRef(onFailure); failureRef.current = onFailure
   const activeRef = useRef(active); activeRef.current = active
@@ -39,7 +39,7 @@ export function CameraRig({ layout, active, onReady, onFailure }: { layout: Layo
   }, [bus, camera, gl, invalidate, reduced])
   useEffect(() => {
     if (controls.current) { controls.current.enabled = active; controls.current.autoRotate = active && bus.autoRotate }
-    if (!active) { transition.current = null; bus.pause() }
+    if (!active) { transition.current = null; frameMonitor.current(0, false); bus.pause() }
     else invalidate()
   }, [active, bus, invalidate])
   useEffect(() => bus.onCommand(command => {
@@ -79,18 +79,11 @@ export function CameraRig({ layout, active, onReady, onFailure }: { layout: Layo
     }
     orbit.update()
     if (orbit.autoRotate) invalidate()
-    const time = performance.now(), ms = time - lastFrame.current
-    lastFrame.current = time
-    if (ms > 0 && ms < 250 && (orbit.autoRotate || animation)) {
-      frameTimes.current.push(ms)
-      if (frameTimes.current.length === 90) {
-        const sorted = [...frameTimes.current].sort((a, b) => a - b), p95 = sorted[Math.floor(sorted.length * 0.95)]
-        onDiagnostic?.({ category: 'frame-sample', durationMs: p95, value: sorted[45], nodeCount: projection.nodes.length, edgeCount: projection.edges.length })
-        if (p95 > 75) slowWindows.current++; else if (p95 < 35) slowWindows.current = Math.max(0, slowWindows.current - 1)
-        if (slowWindows.current === 2) setDpr(1)
-        if (slowWindows.current >= 4) failureRef.current?.('slow-frames')
-        frameTimes.current = []
-      }
+    const window = frameMonitor.current(performance.now(), orbit.autoRotate || !!animation)
+    if (window) {
+      onDiagnostic?.({ category: 'frame-sample', durationMs: window.p95Ms, value: window.p50Ms, nodeCount: projection.nodes.length, edgeCount: projection.edges.length })
+      if (window.slowWindows === 2) setDpr(1)
+      if (window.slowWindows >= 4) failureRef.current?.('slow-frames')
     }
   })
   return null

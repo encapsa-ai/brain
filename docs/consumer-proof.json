@@ -1,12 +1,12 @@
 {
-  "consumer": "/tmp/brain-package-proof-B71q9p/consumer",
-  "tarball": "/tmp/brain-package-proof-B71q9p/encapsa-dev-brain-0.1.0.tgz",
+  "consumer": "/tmp/brain-package-proof-RkanFs/consumer",
+  "tarball": "/tmp/brain-package-proof-RkanFs/encapsa-dev-brain-0.1.0.tgz",
   "packageFiles": [
     "README.md",
     "dist/adapters/forge/index.d.ts",
     "dist/adapters/forge/index.js",
-    "dist/chunk-BXJOCFL5.js",
-    "dist/chunk-MXXIXEKJ.js",
+    "dist/chunk-2HU2SLAM.js",
+    "dist/chunk-CEQNBTLN.js",
     "dist/core/index.d.ts",
     "dist/core/index.js",
     "dist/index.d.ts",

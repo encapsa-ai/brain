@@ -390,26 +390,30 @@ function createBrainStore(initialGraph, initial = {}) {
     if (!external) options.onSelectedNodeChange?.(nodeId);
     if (nodeId) void requestDetails(nodeId);
   }
-  function replaceGraph(graph) {
+  function applyGraph(graph) {
     const scopeChanged = graph.scopeKey !== snapshot.graph.scopeKey;
     const revisionChanged = graph.revision !== snapshot.graph.revision;
-    if (scopeChanged || revisionChanged) invalidateDetails();
-    if (scopeChanged) {
-      graphAbort?.abort();
-      graphGeneration++;
-      unsubscribe?.();
-      unsubscribe = void 0;
-    }
     const diagnostics2 = validateGraph(graph);
+    const resetContext = scopeChanged || diagnostics2.length > 0;
+    if (resetContext || revisionChanged) invalidateDetails();
     const safeGraph = diagnostics2.length ? { ...graph, nodes: [], edges: [] } : graph;
     emit({
       graph: safeGraph,
       diagnostics: diagnostics2,
       dataStatus: diagnostics2.length ? "unavailable" : "ready",
-      ...scopeChanged || diagnostics2.length ? { selectedNodeId: null, selectedEdgeId: null, filters: defaultFilters, tray: [], expandedGroups: [], observation: null, details: { status: "idle" } } : {},
-      ...revisionChanged ? { details: { status: "idle" }, selectedEdgeId: null, tray: snapshot.tray.filter((id) => safeGraph.nodes.some((node) => node.id === id)) } : {}
+      ...resetContext ? { selectedNodeId: null, selectedEdgeId: null, filters: defaultFilters, tray: [], expandedGroups: [], observation: null, details: { status: "idle" } } : {},
+      ...revisionChanged && !resetContext ? { details: { status: "idle" }, selectedEdgeId: null, tray: snapshot.tray.filter((id) => safeGraph.nodes.some((node) => node.id === id)) } : {}
     });
-    if (scopeChanged) options.onSelectedNodeChange?.(null);
+    if (resetContext) options.onSelectedNodeChange?.(null);
+    return diagnostics2.length === 0;
+  }
+  function replaceGraph(graph) {
+    graphAbort?.abort();
+    graphAbort = null;
+    graphGeneration++;
+    unsubscribe?.();
+    unsubscribe = void 0;
+    applyGraph(graph);
   }
   function failClosed(scopeKey) {
     invalidateDetails();
@@ -438,17 +442,19 @@ function createBrainStore(initialGraph, initial = {}) {
         failClosed(scopeKey);
         return;
       }
-      replaceGraph(graph);
+      if (!applyGraph(graph)) return;
       let sequence = -1;
-      unsubscribe = source.subscribe?.({ scopeKey, onRevision(next, nextSequence) {
-        if (disposed || generation !== graphGeneration || snapshot.graph.scopeKey !== scopeKey || nextSequence <= sequence) return;
+      const stop = source.subscribe?.({ scopeKey, onRevision(next, nextSequence) {
+        if (disposed || generation !== graphGeneration || snapshot.graph.scopeKey !== scopeKey || !Number.isSafeInteger(nextSequence) || nextSequence <= sequence) return;
         if (next.scopeKey !== scopeKey) {
           failClosed(scopeKey);
           return;
         }
         sequence = nextSequence;
-        replaceGraph(next);
+        if (!applyGraph(next)) failClosed(scopeKey);
       } });
+      if (generation === graphGeneration && !disposed) unsubscribe = stop;
+      else stop?.();
     } catch {
       if (!disposed && generation === graphGeneration) failClosed(scopeKey);
     }
@@ -582,6 +588,27 @@ function createCameraBus() {
     }
   };
 }
+function createFrameMonitor() {
+  let lastTime = null, slowWindows = 0;
+  const intervals = [];
+  return (time, moving) => {
+    if (!moving || !Number.isFinite(time) || time < 0) {
+      lastTime = null;
+      return null;
+    }
+    const elapsed = lastTime === null ? 0 : time - lastTime;
+    lastTime = time;
+    if (elapsed <= 0) return null;
+    intervals.push(elapsed);
+    if (intervals.length < 90) return null;
+    const sorted = [...intervals].sort((a, b) => a - b);
+    const p50Ms = sorted[45], p95Ms = sorted[85];
+    if (p95Ms > 75) slowWindows++;
+    else if (p95Ms < 35) slowWindows = Math.max(0, slowWindows - 1);
+    intervals.length = 0;
+    return { p50Ms, p95Ms, slowWindows };
+  };
+}
 function nodeRadius(node, options, degree) {
   const value = options.metric === "loadedDegree" ? degree : node.metrics?.[options.metric];
   if (value === null || value === void 0 || !Number.isFinite(value) || value < 0) return options.unknown ?? options.min * 0.8;
@@ -656,6 +683,10 @@ function clusterLayout(input) {
 }
 
 // src/layout/layout-controller.ts
+function isUsableResult(result, input) {
+  const finiteVector = (value) => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
+  return !!result && result.scopeKey === input.graph.scopeKey && result.revision === input.graph.revision && finiteVector(result.bounds?.min) && finiteVector(result.bounds?.max) && input.graph.nodes.every((node) => finiteVector(result.positions?.[node.id]));
+}
 function createLayoutController(options = {}) {
   let generation = 0, pending;
   return {
@@ -664,52 +695,51 @@ function createLayoutController(options = {}) {
       const requestId = ++generation;
       const fallback = () => (kind === "brain" ? brainLayout : clusterLayout)(input);
       if (input.signal?.aborted) return null;
-      if (custom) {
-        let timer;
-        try {
-          const result = await Promise.race([Promise.resolve(custom(input)), new Promise((_, reject) => {
-            timer = setTimeout(() => reject(new Error("Layout timeout")), options.timeoutMs ?? 1500);
-          })]);
-          if (requestId !== generation || input.signal?.aborted) return null;
-          return result.scopeKey === input.graph.scopeKey && result.revision === input.graph.revision ? result : fallback();
-        } catch {
-          if (input.signal?.aborted || requestId !== generation) return null;
-          options.onFallback?.();
-          return fallback();
-        } finally {
-          clearTimeout(timer);
-        }
-      }
-      if (!options.workerFactory) return fallback();
+      if (!custom && !options.workerFactory) return fallback();
       return new Promise((resolve) => {
-        let worker, timer, settled = false;
+        const controller = new AbortController();
+        let worker, settled = false;
         const finish = (result) => {
           if (settled) return;
           settled = true;
           clearTimeout(timer);
+          controller.abort();
           worker?.terminate();
           input.signal?.removeEventListener("abort", cancel);
-          pending = void 0;
+          if (pending === cancel) pending = void 0;
           resolve(requestId === generation && !input.signal?.aborted ? result : null);
         };
         const cancel = () => finish(null);
         const degrade = () => {
           if (settled) return;
+          if (input.signal?.aborted || requestId !== generation) {
+            finish(null);
+            return;
+          }
           options.onFallback?.();
           finish(fallback());
         };
         pending = cancel;
         input.signal?.addEventListener("abort", cancel, { once: true });
+        const timer = setTimeout(degrade, options.timeoutMs ?? 1500);
         try {
-          worker = options.workerFactory();
-          worker.onmessage = ({ data }) => {
-            if (data.protocol !== 1 || data.requestId !== requestId || data.result.scopeKey !== input.graph.scopeKey || data.result.revision !== input.graph.revision) return;
-            finish(data.result);
-          };
-          worker.onerror = degrade;
-          timer = setTimeout(degrade, options.timeoutMs ?? 1500);
-          const { signal: _signal, ...serializable } = input;
-          worker.postMessage({ protocol: 1, requestId, kind, input: serializable });
+          if (custom) {
+            Promise.resolve(custom({ ...input, signal: controller.signal })).then((result) => {
+              if (settled) return;
+              if (isUsableResult(result, input)) finish(result);
+              else degrade();
+            }, degrade);
+          } else {
+            worker = options.workerFactory();
+            worker.onmessage = ({ data }) => {
+              if (data?.protocol !== 1 || data.requestId !== requestId || data.result?.scopeKey !== input.graph.scopeKey || data.result.revision !== input.graph.revision) return;
+              if (isUsableResult(data.result, input)) finish(data.result);
+              else degrade();
+            };
+            worker.onerror = degrade;
+            const { signal: _signal, ...serializable } = input;
+            worker.postMessage({ protocol: 1, requestId, kind, input: serializable });
+          }
         } catch {
           degrade();
         }
@@ -733,6 +763,7 @@ export {
   createBrainStore,
   createCameraBus,
   createFailureObservation,
+  createFrameMonitor,
   createGraphIndex,
   createLayoutController,
   defaultFilters,
