@@ -499,7 +499,7 @@ function FieldPopover({ anchor, role, id, children, onClose, focusFirst = false,
   const didFocus = useRef3(false);
   const [position, setPosition] = useState4(null);
   useClientLayoutEffect(() => {
-    setPortal(anchor.current?.closest(".brain-explorer") ?? document.body);
+    setPortal(anchor.current?.closest('[role="dialog"], .brain-explorer') ?? document.body);
   }, [anchor]);
   useClientLayoutEffect(() => {
     const trigger = anchor.current, element = content.current;
@@ -565,7 +565,10 @@ function FieldPopover({ anchor, role, id, children, onClose, focusFirst = false,
           const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length;
           buttons[next]?.focus();
         }
-        if (event.key === "Tab") onClose();
+        if (event.key === "Tab") {
+          onClose();
+          anchor.current?.focus();
+        }
       },
       children
     }

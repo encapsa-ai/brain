@@ -202,7 +202,7 @@ styling and behavior in each application. `BrainKindFilters` accepts `label`
 and `kindLabels`; `BrainConnectionPicker` accepts a label and three option
 labels. The generic `BrainPicker` accepts labeled, optionally icon-bearing
 options and supports keyboard selection. Menus and field popovers stay inside
-the nearest `.brain-explorer`, including native fullscreen.
+the nearest host dialog or `.brain-explorer`, including native fullscreen.
 
 ### Main configuration
 

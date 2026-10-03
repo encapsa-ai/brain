@@ -61,6 +61,11 @@ it('disables connection narrowing when no node is selected', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Connections: All items' }))
   expect((screen.getByRole('menuitemradio', { name: 'Direct connections' }) as HTMLButtonElement).disabled).toBe(true)
 })
+it('keeps picker portals inside a nested host dialog rather than outside its focus boundary', () => {
+  render(<div className="brain-explorer"><div role="dialog" aria-label="Host drawer"><BrainProvider graph={graph} defaultSelectedNodeId="a"><BrainConnectionPicker /></BrainProvider></div></div>)
+  fireEvent.click(screen.getByRole('button', { name: 'Connections: All items' }))
+  expect(screen.getByRole('menu').closest('[role="dialog"]')).toBe(screen.getByRole('dialog', { name: 'Host drawer' }))
+})
 it('exports reusable kind filters with configurable terminology', () => {
   render(<BrainProvider graph={graph}><BrainKindFilters label="Record types" kindLabels={{ page: 'Documents' }} /></BrainProvider>)
   expect(screen.getByText('Record types')).toBeTruthy()
