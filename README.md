@@ -167,6 +167,43 @@ import {
 
 For fully custom layouts, compose `BrainViewport`, `BrainInspector`, `BrainToolbar`, `BrainTierNavigator`, `BrainLegend`, and `BrainAccessibleList` inside a `.brain-explorer` wrapper. The wrapper supplies CSS tokens; your own layout must give the viewport a nonzero size.
 
+### Shared dashboard defaults
+
+Renderer and inspector fixes belong in the package, not in copied dashboard
+components. Starting in 0.1.3, every provider uses continuous connectors by
+default in both 2D and 3D. Set `edgePattern="declared"` only when you explicitly
+want preset/resolver `dashed` flags; those WebGL patterns now retain endpoints
+and use length-aware subdivision rather than large missing sections.
+
+`BrainInspector` and `BrainExplorer` accept `inspectorOptions`. Defaults hide
+unknown versions, the completeness row, the technical metadata footer, and the
+directed-path form. Known versions, relationship counts, authorized details,
+security notices, receipt evidence, and context actions remain available.
+The path finder is retained, not deleted:
+
+```tsx
+<BrainInspector
+  showContextActions={false}
+  inspectorOptions={{
+    showDirectedPaths: false, // opt in when your graph supports the workflow
+    labels: { source: 'Source', sourceEvidence: 'Source field' },
+  }}
+/>
+```
+
+`showUnknownVersion`, `showCompleteness`, and `showMetadataFooter` can explicitly
+restore those fields. Source pointers are single-line, expandable on hover or
+focus, and click-to-copy; failure to access the clipboard is reported honestly.
+Relationship badges count unique loaded edges, not traversals.
+
+For custom dashboard shells, reuse `BrainKindFilters`, `BrainConnectionPicker`,
+`BrainPicker`, and `BrainCopyField` from `/react` rather than implementing their
+styling and behavior in each application. `BrainKindFilters` accepts `label`
+and `kindLabels`; `BrainConnectionPicker` accepts a label and three option
+labels. The generic `BrainPicker` accepts labeled, optionally icon-bearing
+options and supports keyboard selection. Menus and field popovers stay inside
+the nearest `.brain-explorer`, including native fullscreen.
+
 ### Main configuration
 
 | Prop / extension | Behavior |
@@ -186,6 +223,8 @@ For fully custom layouts, compose `BrainViewport`, `BrainInspector`, `BrainToolb
 | `onRequestDetails` | Lazy host-authorized details, with abort/scope/revision checks |
 | `renderNodeDetails`, `renderNodeActions` | Custom inspector content and actions |
 | `nodeStyleResolver`, `edgeStyleResolver` | Renderer-neutral styling |
+| `edgePattern` | `continuous` by default; `declared` opts into preset/resolver dash flags |
+| `inspectorOptions` | Shared visibility controls and label overrides; directed paths opt in |
 | `layoutAdapter`, `layoutWorkerFactory` | Bounded custom layouts / worker execution |
 | `toolbarStart`, `toolbarEnd`, `receiptControls` | Host interface slots |
 | `loadingSlot`, `emptySlot`, `errorSlot`, `unsupportedSlot` | Replaceable status UI |
@@ -207,6 +246,10 @@ Keep the canonical graph separate from presentation grouping. Hierarchy collapse
 The store treats returned graphs as replacement snapshots. If your API returns incremental pages, merge and validate those pages in the host before supplying a graph. Change `revision` for each new snapshot and `scopeKey` whenever the authorization context changes, including an account/site/role boundary.
 
 `AuthorizedNodeDetails` has `scopeKey`, `graphRevision`, `nodeId`, primitive labeled `fields`, optional `authorizedText`, and optional evidence pointers. Text is escaped; the package does not render raw HTML or download remote assets. Authorization/scope errors clear graph data and pending work rather than trying another source.
+
+Set `copyable: true` on an authorized detail field to use the reusable full-value
+copy/disclosure control. This is independent of its display label, so hosts do
+not need conventions such as naming every copyable field “Field.”
 
 ## Forge, AI context, and RAG interfaces
 

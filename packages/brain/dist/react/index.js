@@ -2,11 +2,15 @@
 "use client";
 import {
   BrainAccessibleList,
+  BrainConnectionPicker,
   BrainContextTray,
+  BrainCopyField,
   BrainExplorer,
   BrainExplorerShell,
   BrainInspector,
+  BrainKindFilters,
   BrainLegend,
+  BrainPicker,
   BrainPreview,
   BrainResolutionPanel,
   BrainSvgRenderer,
@@ -14,21 +18,25 @@ import {
   BrainToolbar,
   BrainViewport,
   useExplorerFullscreen
-} from "../chunk-TFM5P5VM.js";
+} from "../chunk-XBXUU5QZ.js";
 import {
   BrainProvider,
   useBrain,
   useBrainContext,
   useBrainLayout,
   useReducedMotion
-} from "../chunk-MXCBS66O.js";
+} from "../chunk-HMP6QWOA.js";
 export {
   BrainAccessibleList,
+  BrainConnectionPicker,
   BrainContextTray,
+  BrainCopyField,
   BrainExplorer,
   BrainExplorerShell,
   BrainInspector,
+  BrainKindFilters,
   BrainLegend,
+  BrainPicker,
   BrainPreview,
   BrainProvider,
   BrainResolutionPanel,

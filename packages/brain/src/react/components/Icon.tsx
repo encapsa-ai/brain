@@ -9,6 +9,7 @@ const paths = {
   cube: 'm12 3 9 5v8l-9 5-9-5V8l9-5Zm0 9v9m-9-13 9 5 9-5M7 5l9 5', link: 'm9 15 6-6m-7 3-2 2a4 4 0 0 0 6 6l3-3m-3-9 2-2a4 4 0 0 1 6 6l-3 3',
   info: 'M12 11v6m0-10v.01M21 12a9 9 0 1 0-18 0 9 9 0 0 0 18 0', check: 'm5 12 4 4L19 6',
   panel: 'M3 4h18v16H3V4Zm5 0v16', arrow: 'M4 12h16m-6-6 6 6-6 6', play: 'm7 4 14 8-14 8V4Z', pause: 'M8 5v14M16 5v14',
+  share: 'M6 12h6m0 0v-6h6m-6 6v6h6M3 9h3v6H3V9Zm15-5h3v4h-3V4Zm0 12h3v4h-3v-4Z',
 } as const
 export function Icon({ name, className = '' }: { name: keyof typeof paths; className?: string }) {
   return <svg className={`brain-icon ${className}`} aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={paths[name]} /></svg>
