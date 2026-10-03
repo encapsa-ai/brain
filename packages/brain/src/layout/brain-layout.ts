@@ -24,10 +24,10 @@ export function boundsFor(positions: Readonly<Record<string, Position3>>): Layou
   return { min, max }
 }
 export function brainLayout(input: LayoutInput): LayoutResult {
-  const positions: Record<string, Position3> = {}
+  const positions: Record<string, Position3> = Object.create(null)
   for (const node of input.graph.nodes) {
     if (input.signal?.aborted) throw new Error('Layout cancelled')
-    const prior = input.previous?.[node.id]
+    const prior = input.previous && Object.hasOwn(input.previous, node.id) ? input.previous[node.id] : undefined
     if (prior && prior.every(Number.isFinite)) { positions[node.id] = input.dimensions === 2 ? [prior[0], prior[1], 0] : prior; continue }
     const anchor = node.kind === 'skill' ? [1.65, -0.5, 0.15] : anchors[regionIndex(node)]
     const hash = stableHash(`${input.seed}:${node.id}`), hash2 = stableHash(`${node.id}:${input.seed}:depth`)

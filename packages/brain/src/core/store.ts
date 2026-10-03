@@ -75,9 +75,11 @@ export function createBrainStore(initialGraph: BrainGraph, initial: BrainStoreOp
     const revisionChanged = graph.revision !== snapshot.graph.revision
     const diagnostics = validateGraph(graph)
     const resetContext = scopeChanged || diagnostics.length > 0
-    if (resetContext || revisionChanged) invalidateDetails()
+    // Even a host that forgets to bump its revision must not retain detail
+    // content for a removed/replaced entity or accept an in-flight old result.
+    invalidateDetails()
     const safeGraph = diagnostics.length ? { ...graph, nodes: [], edges: [] } : graph
-    emit({ graph: safeGraph, diagnostics, dataStatus: diagnostics.length ? 'unavailable' : 'ready',
+    emit({ graph: safeGraph, diagnostics, dataStatus: diagnostics.length ? 'unavailable' : 'ready', details: { status: 'idle' },
       ...(resetContext ? { selectedNodeId: null, selectedEdgeId: null, filters: defaultFilters, tray: [], expandedGroups: [], observation: null, details: { status: 'idle' } as DetailState } : {}),
       ...(revisionChanged && !resetContext ? { details: { status: 'idle' } as DetailState, selectedEdgeId: null, tray: snapshot.tray.filter(id => safeGraph.nodes.some(node => node.id === id)) } : {}),
     })
@@ -132,7 +134,7 @@ export function createBrainStore(initialGraph: BrainGraph, initial: BrainStoreOp
     removeFromTray(id: string) { emit({ tray: snapshot.tray.filter(nodeId => nodeId !== id) }) },
     reorderTray(id: string, offset: number) { const tray = [...snapshot.tray], index = tray.indexOf(id), target = index + offset; if (index >= 0 && target >= 0 && target < tray.length) { [tray[index], tray[target]] = [tray[target], tray[index]]; emit({ tray }) } },
     clearTray() { emit({ tray: [] }) },
-    dispose() { disposed = true; invalidateDetails(); graphAbort?.abort(); unsubscribe?.(); listeners.clear() },
+    dispose() { disposed = true; invalidateDetails(); graphGeneration++; graphAbort?.abort(); unsubscribe?.(); unsubscribe = undefined; listeners.clear() },
     resume() { disposed = false },
   }
 }

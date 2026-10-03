@@ -1,6 +1,7 @@
 'use client'
 export * from './BrainProvider'
 export * from './BrainExplorer'
+export * from './BrainPreview'
 export * from './hooks'
 export * from './renderer-types'
 export * from './components/BrainViewport'

@@ -5,8 +5,8 @@ import type { BrainNode } from '../../core/types'
 import { findDirectedPath } from '../../core/graph-index'
 import { matchObservation } from '../../core/resolution'
 import { Icon, KindGlyph } from './Icon'
-export interface BrainInspectorProps { renderNodeDetails?: (node: BrainNode) => ReactNode; renderNodeActions?: (node: BrainNode) => ReactNode; onClose?: () => void }
-export function BrainInspector({ renderNodeDetails, renderNodeActions, onClose }: BrainInspectorProps) {
+export interface BrainInspectorProps { renderNodeDetails?: (node: BrainNode) => ReactNode; renderNodeActions?: (node: BrainNode) => ReactNode; onClose?: () => void; showContextActions?: boolean }
+export function BrainInspector({ renderNodeDetails, renderNodeActions, onClose, showContextActions = true }: BrainInspectorProps) {
   const { selectedNodeId, index, graph, select, selectEdge, selectedEdgeId, nodeStyle, edgeStyle, details, observation, store, tray, camera } = useBrain()
   const [tab, setTab] = useState<'details' | 'relationships'>('details'), [pathTarget, setPathTarget] = useState(''), [pathMessage, setPathMessage] = useState('')
   const id = useId()
@@ -45,6 +45,6 @@ export function BrainInspector({ renderNodeDetails, renderNodeActions, onClose }
         <div className="brain-field"><label htmlFor={`${id}-path`}>Directed path to another entity</label><select id={`${id}-path`} value={pathTarget} onChange={event => { setPathTarget(event.target.value); setPathMessage('') }}><option value="">Choose endpoint</option>{graph.nodes.filter(other => other.id !== node.id).slice(0, 1000).map(other => <option key={other.id} value={other.id}>{other.label}</option>)}</select><button className="brain-button" disabled={!pathTarget} onClick={() => { const path = findDirectedPath(index, node.id, pathTarget); setPathMessage(path ? `${path.length} explicit directed edge${path.length === 1 ? '' : 's'}: ${[node.label, ...path.map(edge => index.nodes.get(edge.target)?.label)].join(' → ')}` : 'No known directed path in this loaded projection. This does not prove no connection exists.'); if (path?.length) { store.setEdge(path[0].id); camera.send({ type: 'focus', nodeIds: [node.id, pathTarget] }) } }}>Find loaded path</button><p className="brain-help" role="status">{pathMessage}</p></div>
       </div>}
     </div>
-    <div className="brain-inspector-footer">{node.canonicalRef && <button className="brain-button brain-button-primary" disabled={tray.includes(node.id)} onClick={() => store.addToTray(node.id)}><Icon name={tray.includes(node.id) ? 'check' : 'plus'} />{tray.includes(node.id) ? 'Added to context' : 'Add to context'}</button>}{renderNodeActions?.(node)}<span className="brain-muted">Metadata only · authorized projection</span></div>
+    <div className="brain-inspector-footer">{showContextActions && node.canonicalRef && <button className="brain-button brain-button-primary" disabled={tray.includes(node.id)} onClick={() => store.addToTray(node.id)}><Icon name={tray.includes(node.id) ? 'check' : 'plus'} />{tray.includes(node.id) ? 'Added to context' : 'Add to context'}</button>}{renderNodeActions?.(node)}<span className="brain-muted">Metadata only · authorized projection</span></div>
   </aside>
 }

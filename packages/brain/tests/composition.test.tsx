@@ -12,6 +12,12 @@ const graph: BrainGraph = { schemaVersion: '1', scopeKey: 's', revision: 'r', co
 afterEach(cleanup)
 function Probe() { const { selectedNodeId, camera } = useBrain(); return <><output data-testid="selection">{selectedNodeId ?? 'none'}</output><button onClick={() => camera.send({ type: 'rotate', yaw: 1, pitch: 0 })}>Rotate</button></> }
 describe('composable React integration', () => {
+  it('follows an incoming relationship back to the source entity', () => {
+    render(<BrainProvider graph={graph} defaultSelectedNodeId="b"><BrainInspector /><Probe /></BrainProvider>)
+    fireEvent.click(screen.getByRole('tab', { name: /Relationships/ }))
+    fireEvent.click(screen.getByRole('button', { name: /References · directed Alpha/ }))
+    expect(screen.getByTestId('selection').textContent).toBe('a')
+  })
   it('never reuses completed custom results for a different filtered projection', async () => {
     const requests: { input: LayoutInput; resolve: (result: LayoutResult) => void }[] = []
     const layoutAdapter = (input: LayoutInput) => new Promise<LayoutResult>(resolve => requests.push({ input, resolve }))

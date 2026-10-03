@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type ComponentType } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect as useReactLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type ComponentType } from 'react'
 import { createBrainStore, type BrainStore, type BrainStoreOptions } from '../core/store'
 import { createCameraBus, type CameraBus } from '../core/camera'
 import { createGraphIndex } from '../core/graph-index'
@@ -12,6 +12,7 @@ import { createLayoutController, type LayoutWorkerPort } from '../layout/layout-
 import type { BrainEdge, BrainGraph, BrainNode, BrainPreset, DiagnosticListener, EdgeKindStyle, KindStyle, LayoutAdapter, LayoutResult, NodeSizeOptions } from '../core/types'
 import type { ViewportRendererProps } from './renderer-types'
 export type WebGLRendererLoader = () => Promise<{ BrainWebGLRenderer: ComponentType<ViewportRendererProps> }>
+const useLayoutEffect = typeof window === 'undefined' ? useEffect : useReactLayoutEffect
 
 export interface BrainProviderProps extends BrainStoreOptions {
   graph: BrainGraph
@@ -89,9 +90,10 @@ export function useBrain() {
     if (canonical && context.autoFocus) context.camera.send({ type: 'focus', nodeIds: [canonical] })
   }
   const selectEdge = (edge: BrainEdge) => {
-    const target = projection.nodes.find(node => node.id === edge.target)
+    const destination = edge.target === snapshot.selectedNodeId ? edge.source : edge.target
+    const target = projection.nodes.find(node => node.id === destination)
     if (target?.groupId) context.store.setExpandedGroups([...snapshot.expandedGroups, target.groupId])
-    context.store.select(target?.canonicalId ?? (index.nodes.has(edge.target) ? edge.target : null))
+    context.store.select(target?.canonicalId ?? (index.nodes.has(destination) ? destination : null))
     context.store.setEdge(edge.id)
     context.camera.send({ type: 'focus', nodeIds: [edge.source, edge.target] })
   }

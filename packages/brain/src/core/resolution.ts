@@ -8,6 +8,7 @@ export function matchObservation(graph: BrainGraph, observation: ResolutionObser
     if (graph.scopeKey !== observation.association.scopeKey) return unmatched('scope-mismatch')
     const parsed = parseForgeRef(section.sourceRef, observation.association.callerTenant)
     const resourceKey = section.resourceKey ?? parsed?.resourceKey
+    if (!resourceKey) return unmatched('not-in-projection')
     const version = section.version ?? parsed?.version
     if (!version) return unmatched('unknown-version')
     const candidates = graph.nodes.filter(node => node.sourceNamespace === observation.association.sourceNamespace && node.resourceKey === resourceKey)

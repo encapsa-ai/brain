@@ -6,6 +6,13 @@ import type { BrainGraph, LayoutInput } from '../src/core/types'
 const graph: BrainGraph = { schemaVersion: '1', scopeKey: 's', revision: 'r', completeness: 'complete', nodes: Array.from({ length: 100 }, (_, i) => ({ id: `n${i}`, kind: 'document', label: `Node ${i}`, sourceNamespace: 'test' })), edges: [] }
 const input: LayoutInput = { graph, seed: 'seed', dimensions: 3 }
 describe('bounded layout geometry', () => {
+  it.each([brainLayout, clusterLayout])('handles object-property names as node identities', layout => {
+    const unusual = { ...graph, nodes: ['__proto__', 'constructor', 'toString'].map(id => ({ id, label: id, kind: 'document', sourceNamespace: 'test' })) }
+    const result = layout({ ...input, graph: unusual, previous: {} })
+    expect(Object.keys(result.positions)).toHaveLength(3)
+    expect(Object.getPrototypeOf(result.positions)).toBeNull()
+    expect(Object.values(result.positions).flat().every(Number.isFinite)).toBe(true)
+  })
   it.each([brainLayout, clusterLayout])('is deterministic, finite and immutable', layout => { const original = JSON.stringify(graph); expect(layout(input)).toEqual(layout(input)); expect(Object.values(layout(input).positions).flat().every(Number.isFinite)).toBe(true); expect(JSON.stringify(graph)).toBe(original); expect(layout({ ...input, seed: 'other' }).positions).not.toEqual(layout(input).positions) })
   it.each([brainLayout, clusterLayout])('supports empty and single-node graphs', layout => { expect(Object.keys(layout({ ...input, graph: { ...graph, nodes: [] } }).positions)).toHaveLength(0); expect(Object.keys(layout({ ...input, graph: { ...graph, nodes: graph.nodes.slice(0, 1) } }).positions)).toHaveLength(1) })
   it('retains old positions on append and flattens 2D z', () => { const prior = brainLayout(input); const next = brainLayout({ ...input, graph: { ...graph, nodes: [...graph.nodes, { id: 'new', label: 'New', kind: 'document', sourceNamespace: 'test' }] }, previous: prior.positions }); expect(next.positions.n42).toEqual(prior.positions.n42); expect(Object.values(brainLayout({ ...input, dimensions: 2 }).positions).every(p => p[2] === 0)).toBe(true) })

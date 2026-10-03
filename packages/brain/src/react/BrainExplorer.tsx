@@ -24,6 +24,9 @@ export interface BrainExplorerShellProps extends BrainViewportProps, BrainInspec
   receiptControls?: ReactNode
   controllerRef?: Ref<BrainController>
   defaultNavigatorOpen?: boolean
+  /** Fill the host panel; do not collapse to a miniature when used in a tab. */
+  variant?: 'standalone' | 'embedded'
+  showContextTray?: boolean
 }
 export interface BrainExplorerProps extends Omit<BrainProviderProps, 'children'>, BrainExplorerShellProps {}
 export const BrainExplorer = forwardRef<BrainController, BrainExplorerProps>(function BrainExplorer(props, ref) {
@@ -36,7 +39,7 @@ export function BrainExplorerShell(props: BrainExplorerShellProps) {
   const fullscreen = useExplorerFullscreen(root)
   const [navigatorOpen, setNavigatorOpen] = useState(props.defaultNavigatorOpen ?? true), [listOpen, setListOpen] = useState(false), [mode, setMode] = useState<ExplorerMode>('inventory')
   const [size, setSize] = useState({ width: 1400, height: 760 }), [hydrated, setHydrated] = useState(false)
-  const compact = fullscreen.mode === 'none' && (size.width < 500 || size.height < 340), narrow = size.width < 960
+  const compact = props.variant !== 'embedded' && fullscreen.mode === 'none' && (size.width < 500 || size.height < 340), narrow = size.width < 960
   const searchId = useId(), selected = selectedNodeId ? index.nodes.get(selectedNodeId) : null
   const currentMode = props.mode ?? mode
   const setModeValue = (value: ExplorerMode) => { setMode(value); props.onModeChange?.(value) }
@@ -54,7 +57,7 @@ export function BrainExplorerShell(props: BrainExplorerShellProps) {
   const results = filters.query ? graph.nodes.filter(node => `${node.label} ${node.canonicalRef ?? ''}`.toLocaleLowerCase().includes(filters.query.toLocaleLowerCase())).slice(0, 8) : []
   const searchSelect = (id: string) => { store.setFilters({ ...filters, query: '' }); select(id); root.current?.querySelector<HTMLElement>('.brain-viewport')?.focus() }
   const edge = graph.edges.find(item => item.id === selectedEdgeId)
-  return <div ref={root} className={`brain-explorer ${props.className ?? ''} ${compact ? 'brain-compact' : ''} ${narrow ? 'brain-narrow' : ''} ${fullscreen.mode === 'overlay' ? 'brain-expanded-overlay' : ''}`} data-theme={props.theme ?? 'dark'} data-ready={hydrated} data-fullscreen={fullscreen.mode} data-scope={graph.scopeKey} style={props.style} tabIndex={-1} role={fullscreen.mode === 'overlay' ? 'dialog' : 'region'} aria-modal={fullscreen.mode === 'overlay' ? true : undefined} aria-label={fullscreen.mode === 'overlay' ? 'Expanded explorer overlay, not native fullscreen' : 'Brain Explorer'}
+  return <div ref={root} className={`brain-explorer ${props.variant === 'embedded' ? 'brain-embedded' : ''} ${props.className ?? ''} ${compact ? 'brain-compact' : ''} ${narrow ? 'brain-narrow' : ''} ${fullscreen.mode === 'overlay' ? 'brain-expanded-overlay' : ''}`} data-theme={props.theme ?? 'dark'} data-ready={hydrated} data-fullscreen={fullscreen.mode} style={props.style} tabIndex={-1} role={fullscreen.mode === 'overlay' ? 'dialog' : 'region'} aria-modal={fullscreen.mode === 'overlay' ? true : undefined} aria-label={fullscreen.mode === 'overlay' ? 'Expanded explorer overlay, not native fullscreen' : 'Brain Explorer'}
     onPointerDownCapture={event => { if (!(event.target as HTMLElement).closest('.brain-auto-rotate')) camera.pause() }}
     onKeyDownCapture={event => { if (!(event.target as HTMLElement).closest('.brain-auto-rotate')) camera.pause() }}
     onKeyDown={event => {
@@ -86,9 +89,9 @@ export function BrainExplorerShell(props: BrainExplorerShellProps) {
         </div>
         <BrainLegend />
         <div className="brain-spatial-note"><Icon name="info" />Spatial positions are a layout, not semantic similarity.</div>
-        <BrainContextTray onPreview={props.onPreview} previewLabel={props.previewLabel} simulated={props.simulated} />
+        {props.showContextTray !== false && <BrainContextTray onPreview={props.onPreview} previewLabel={props.previewLabel} simulated={props.simulated} />}
       </div>
-      {selectedNodeId && !compact && <div className={narrow ? 'brain-inspector-mobile' : 'brain-inspector-container'}><BrainInspector renderNodeDetails={props.renderNodeDetails} renderNodeActions={props.renderNodeActions} onClose={() => root.current?.querySelector<HTMLElement>('.brain-viewport')?.focus()} /></div>}
+      {selectedNodeId && !compact && <div className={narrow ? 'brain-inspector-mobile' : 'brain-inspector-container'}><BrainInspector renderNodeDetails={props.renderNodeDetails} renderNodeActions={props.renderNodeActions} showContextActions={props.showContextActions ?? props.showContextTray !== false} onClose={() => root.current?.querySelector<HTMLElement>('.brain-viewport')?.focus()} /></div>}
       {listOpen && <><button className="brain-drawer-scrim" aria-label="Dismiss accessible node list" onClick={() => setListOpen(false)} /><div className="brain-list-drawer" ref={drawer} role="dialog" aria-modal="true" aria-label="Accessible node list"><div className="brain-panel-heading"><span>Loaded context</span><button className="brain-icon-button" aria-label="Close accessible node list" onClick={() => { setListOpen(false); listTrigger.current?.focus() }}><Icon name="close" /></button></div><BrainAccessibleList /></div></>}
     </div>
     <div className="brain-statusbar"><span><i className="brain-status-dot" />{graph.completeness === 'complete' ? 'Loaded projection' : 'Partial inventory'}<span className="brain-status-divider">/</span>{graph.nodes.length.toLocaleString()} nodes<span className="brain-status-divider">/</span>{graph.edges.length.toLocaleString()} relationships</span><span>{graph.nodes.length > 1500 && projection.nodes.length < graph.nodes.length ? 'Level-of-detail aggregation · ' : ''}Scope isolated<span className="brain-status-divider">·</span>Host-authorized projection</span></div>

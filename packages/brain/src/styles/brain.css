@@ -7,6 +7,7 @@
   --brain-text: #e2eaf0;
   --brain-muted: #95a3b5;
   --brain-factual: #62d9ca;
+  --brain-action-text: #62d9ca;
   --brain-procedural: #e8bd72;
   --brain-reference: #b8a1e8;
   --brain-included: #74d5a1;
@@ -42,12 +43,21 @@
   --brain-text: #182b3d;
   --brain-muted: #506278;
   --brain-factual: #197b72;
+  --brain-action-text: #12655d;
   --brain-procedural: #865d19;
   --brain-reference: #715598;
   --brain-included: #226b44;
   --brain-error: #b23c44;
   --brain-contour: #408780;
 }
+.brain-embedded { height: 100%; border: 0; border-radius: 0; }
+.brain-preview { height: 160px; }
+.brain-preview-surface { position: absolute; inset: 0; pointer-events: none; user-select: none; }
+.brain-preview .brain-viewport { height: 100%; }
+.brain-preview .brain-preview-expand { position: absolute; top: 8px; right: 8px; z-index: 2; background: var(--brain-panel); border: 1px solid var(--brain-border); }
+.brain-preview .brain-renderer-notice, .brain-preview .brain-hover-tooltip, .brain-preview .brain-world-labels { display: none; }
+.brain-preview .brain-empty { padding: 12px; }
+.brain-preview .brain-empty p { display: none; }
 .brain-explorer *, .brain-explorer *::before, .brain-explorer *::after { box-sizing: border-box; }
 .brain-explorer button, .brain-explorer input, .brain-explorer select { font: inherit; color: inherit; }
 .brain-explorer button { cursor: pointer; }
@@ -62,7 +72,7 @@
 .brain-icon-button:hover:not(:disabled) { background: var(--brain-raised); color: var(--brain-text) !important; }
 .brain-button { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--brain-border); border-radius: 7px; color: var(--brain-text); background: var(--brain-raised); font-weight: 500 !important; }
 .brain-button:hover:not(:disabled) { border-color: var(--brain-muted); }
-.brain-button-primary { background: color-mix(in srgb, var(--brain-factual) 12%, var(--brain-panel)); color: var(--brain-factual) !important; border-color: color-mix(in srgb, var(--brain-factual) 30%, var(--brain-border)); }
+.brain-button-primary { background: color-mix(in srgb, var(--brain-factual) 12%, var(--brain-panel)); color: var(--brain-action-text) !important; border-color: color-mix(in srgb, var(--brain-factual) 30%, var(--brain-border)); }
 .brain-text-button { background: none; border: 0; padding: 0; color: var(--brain-factual) !important; text-align: start; }
 .brain-muted, .brain-help { color: var(--brain-muted); font-size: 14px; line-height: 1.6; }
 .brain-help { padding: 10px 0; }
