@@ -2,8 +2,33 @@
 import { useId } from 'react'
 import { useBrain } from '../BrainProvider'
 import { groupAncestors, groupMembers } from '../../core/hierarchy'
+import type { BrainStore } from '../../core/store'
 import { Icon, KindGlyph } from './Icon'
-import type { PresentationGroup } from '../../core/types'
+import type { BrainFilters, BrainHierarchy, PresentationGroup } from '../../core/types'
+
+interface GroupRowProps {
+  group: PresentationGroup
+  depth: number
+  hierarchy: BrainHierarchy
+  expandedGroups: readonly string[]
+  filters: BrainFilters
+  store: BrainStore
+}
+
+function GroupRow({ group, depth, hierarchy, expandedGroups, filters, store }: GroupRowProps) {
+  const children = hierarchy.groups.filter(candidate => candidate.parentGroupId === group.id)
+  const expanded = expandedGroups.includes(group.id)
+  const members = groupMembers(hierarchy, group.id)
+  if (!members.size) return null
+  return <li>
+    <div className={`brain-tree-row ${filters.groupId === group.id ? 'is-active' : ''}`} style={{ paddingInlineStart: `${10 + depth * 13}px` }}>
+      <button className="brain-tree-expand" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${group.label}`} onClick={() => store.setExpandedGroups(expanded ? expandedGroups.filter(id => id !== group.id) : [...expandedGroups, group.id])}><Icon name={expanded ? 'down' : 'right'} /></button>
+      <button className="brain-tree-name" aria-pressed={filters.groupId === group.id} onClick={() => { store.setFilters({ ...filters, groupId: filters.groupId === group.id ? null : group.id }); if (!expanded) store.setExpandedGroups([...expandedGroups, group.id]) }}><span>{group.label}</span><span className="brain-tree-count" title="Loaded entity count; authoritative total may be unknown">{members.size}</span></button>
+    </div>
+    {expanded && children.length > 0 && <ul>{children.map(child => <GroupRow key={child.id} group={child} depth={depth + 1} hierarchy={hierarchy} expandedGroups={expandedGroups} filters={filters} store={store} />)}</ul>}
+  </li>
+}
+
 export function BrainTierNavigator({ onClose }: { onClose?: () => void }) {
   const brain = useBrain(), neighborhoodId = useId()
   const { hierarchy, graph, expandedGroups, store, filters, nodeStyle } = brain
@@ -11,26 +36,12 @@ export function BrainTierNavigator({ onClose }: { onClose?: () => void }) {
   for (const node of graph.nodes) counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1)
   const ancestors = filters.groupId ? groupAncestors(hierarchy, filters.groupId) : []
   const roots = hierarchy.groups.filter(group => !group.parentGroupId)
-  function GroupRow({ group, depth }: { group: PresentationGroup; depth: number }) {
-    const children = hierarchy.groups.filter(candidate => candidate.parentGroupId === group.id)
-    const expanded = expandedGroups.includes(group.id)
-    const members = groupMembers(hierarchy, group.id)
-    const hasMembers = members.size > 0
-    if (!hasMembers) return null
-    return <li>
-      <div className={`brain-tree-row ${filters.groupId === group.id ? 'is-active' : ''}`} style={{ paddingInlineStart: `${10 + depth * 13}px` }}>
-        <button className="brain-tree-expand" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${group.label}`} onClick={() => store.setExpandedGroups(expanded ? expandedGroups.filter(id => id !== group.id) : [...expandedGroups, group.id])}><Icon name={expanded ? 'down' : 'right'} /></button>
-        <button className="brain-tree-name" aria-pressed={filters.groupId === group.id} onClick={() => { store.setFilters({ ...filters, groupId: filters.groupId === group.id ? null : group.id }); if (!expanded) store.setExpandedGroups([...expandedGroups, group.id]) }}><span>{group.label}</span><span className="brain-tree-count" title="Loaded entity count; authoritative total may be unknown">{members.size}</span></button>
-      </div>
-      {expanded && children.length > 0 && <ul>{children.map(child => <GroupRow key={child.id} group={child} depth={depth + 1} />)}</ul>}
-    </li>
-  }
   return <aside className="brain-navigator" aria-label="Knowledge navigator">
     <div className="brain-panel-heading"><span><Icon name="layers" />Context navigator</span>{onClose && <button className="brain-icon-button" aria-label="Close navigator" onClick={onClose}><Icon name="panel" /></button>}</div>
     <div className="brain-nav-scroll">
       <div className="brain-section-title"><span>Knowledge hierarchy</span><span className="brain-small-badge">{graph.nodes.length}</span></div>
       {ancestors.length > 0 && <nav className="brain-breadcrumbs" aria-label="Hierarchy breadcrumbs"><button onClick={() => store.setFilters({ ...filters, groupId: null })}>All</button>{ancestors.map(id => <button key={id} onClick={() => store.setFilters({ ...filters, groupId: id })}>/ {hierarchy.groups.find(group => group.id === id)?.label}</button>)}<button aria-label="Back one hierarchy level" onClick={() => store.setFilters({ ...filters, groupId: ancestors.at(-2) ?? null })}><Icon name="left" />Back</button></nav>}
-      {roots.length ? <ul className="brain-tree">{roots.map(group => <GroupRow key={group.id} group={group} depth={0} />)}</ul> : <p className="brain-help">Flat projection · no presentation groups supplied.</p>}
+      {roots.length ? <ul className="brain-tree">{roots.map(group => <GroupRow key={group.id} group={group} depth={0} hierarchy={hierarchy} expandedGroups={expandedGroups} filters={filters} store={store} />)}</ul> : <p className="brain-help">Flat projection · no presentation groups supplied.</p>}
       <div className="brain-nav-actions"><button onClick={() => store.setExpandedGroups(hierarchy.groups.map(group => group.id))}>Expand all</button><span>·</span><button onClick={() => store.setExpandedGroups([])}>Collapse all</button></div>
       <fieldset className="brain-kind-filters"><legend>Node kinds</legend>{[...counts].map(([kind, count]) => {
         const sample = graph.nodes.find(node => node.kind === kind)!

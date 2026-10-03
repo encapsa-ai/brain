@@ -20,12 +20,13 @@
     "build:package": "pnpm --filter @encapsa-dev/brain build",
     "start": "next start",
     "typecheck": "tsc --noEmit && pnpm --filter @encapsa-dev/brain typecheck",
-    "lint": "eslint app apps/demo packages/brain/src packages/brain/tests eslint.config.mjs vitest.config.ts playwright.config.ts",
+    "lint": "eslint app apps/demo packages/brain/src packages/brain/tests packages/brain/scripts scripts eslint.config.mjs vitest.config.ts playwright.config.ts",
     "test": "vitest run",
     "test:browser": "playwright test",
     "verify:consumer": "node scripts/verify-consumer.mjs",
+    "release:check": "node scripts/release-check.mjs",
     "pack:library": "pnpm --filter @encapsa-dev/brain pack",
-    "prepublishOnly": "node -e \"throw new Error('Do not publish the demo workspace. Use pnpm --filter @encapsa-dev/brain publish --access public from a reviewed checkout.')\""
+    "prepublishOnly": "node -e \"throw new Error('The demo workspace is private. Run pnpm release:check, then publish @encapsa-dev/brain from the reviewed main checkout.')\""
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

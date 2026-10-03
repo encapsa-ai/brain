@@ -486,6 +486,25 @@ function BrainToolbar() {
 // src/react/components/BrainTierNavigator.tsx
 import { useId as useId3 } from "react";
 import { jsx as jsx6, jsxs as jsxs5 } from "react/jsx-runtime";
+function GroupRow({ group, depth, hierarchy, expandedGroups, filters, store }) {
+  const children = hierarchy.groups.filter((candidate) => candidate.parentGroupId === group.id);
+  const expanded = expandedGroups.includes(group.id);
+  const members = groupMembers(hierarchy, group.id);
+  if (!members.size) return null;
+  return /* @__PURE__ */ jsxs5("li", { children: [
+    /* @__PURE__ */ jsxs5("div", { className: `brain-tree-row ${filters.groupId === group.id ? "is-active" : ""}`, style: { paddingInlineStart: `${10 + depth * 13}px` }, children: [
+      /* @__PURE__ */ jsx6("button", { className: "brain-tree-expand", "aria-expanded": expanded, "aria-label": `${expanded ? "Collapse" : "Expand"} ${group.label}`, onClick: () => store.setExpandedGroups(expanded ? expandedGroups.filter((id) => id !== group.id) : [...expandedGroups, group.id]), children: /* @__PURE__ */ jsx6(Icon, { name: expanded ? "down" : "right" }) }),
+      /* @__PURE__ */ jsxs5("button", { className: "brain-tree-name", "aria-pressed": filters.groupId === group.id, onClick: () => {
+        store.setFilters({ ...filters, groupId: filters.groupId === group.id ? null : group.id });
+        if (!expanded) store.setExpandedGroups([...expandedGroups, group.id]);
+      }, children: [
+        /* @__PURE__ */ jsx6("span", { children: group.label }),
+        /* @__PURE__ */ jsx6("span", { className: "brain-tree-count", title: "Loaded entity count; authoritative total may be unknown", children: members.size })
+      ] })
+    ] }),
+    expanded && children.length > 0 && /* @__PURE__ */ jsx6("ul", { children: children.map((child) => /* @__PURE__ */ jsx6(GroupRow, { group: child, depth: depth + 1, hierarchy, expandedGroups, filters, store }, child.id)) })
+  ] });
+}
 function BrainTierNavigator({ onClose }) {
   const brain = useBrain(), neighborhoodId = useId3();
   const { hierarchy, graph, expandedGroups, store, filters, nodeStyle } = brain;
@@ -493,26 +512,6 @@ function BrainTierNavigator({ onClose }) {
   for (const node of graph.nodes) counts.set(node.kind, (counts.get(node.kind) ?? 0) + 1);
   const ancestors = filters.groupId ? groupAncestors(hierarchy, filters.groupId) : [];
   const roots = hierarchy.groups.filter((group) => !group.parentGroupId);
-  function GroupRow({ group, depth }) {
-    const children = hierarchy.groups.filter((candidate) => candidate.parentGroupId === group.id);
-    const expanded = expandedGroups.includes(group.id);
-    const members = groupMembers(hierarchy, group.id);
-    const hasMembers = members.size > 0;
-    if (!hasMembers) return null;
-    return /* @__PURE__ */ jsxs5("li", { children: [
-      /* @__PURE__ */ jsxs5("div", { className: `brain-tree-row ${filters.groupId === group.id ? "is-active" : ""}`, style: { paddingInlineStart: `${10 + depth * 13}px` }, children: [
-        /* @__PURE__ */ jsx6("button", { className: "brain-tree-expand", "aria-expanded": expanded, "aria-label": `${expanded ? "Collapse" : "Expand"} ${group.label}`, onClick: () => store.setExpandedGroups(expanded ? expandedGroups.filter((id) => id !== group.id) : [...expandedGroups, group.id]), children: /* @__PURE__ */ jsx6(Icon, { name: expanded ? "down" : "right" }) }),
-        /* @__PURE__ */ jsxs5("button", { className: "brain-tree-name", "aria-pressed": filters.groupId === group.id, onClick: () => {
-          store.setFilters({ ...filters, groupId: filters.groupId === group.id ? null : group.id });
-          if (!expanded) store.setExpandedGroups([...expandedGroups, group.id]);
-        }, children: [
-          /* @__PURE__ */ jsx6("span", { children: group.label }),
-          /* @__PURE__ */ jsx6("span", { className: "brain-tree-count", title: "Loaded entity count; authoritative total may be unknown", children: members.size })
-        ] })
-      ] }),
-      expanded && children.length > 0 && /* @__PURE__ */ jsx6("ul", { children: children.map((child) => /* @__PURE__ */ jsx6(GroupRow, { group: child, depth: depth + 1 }, child.id)) })
-    ] });
-  }
   return /* @__PURE__ */ jsxs5("aside", { className: "brain-navigator", "aria-label": "Knowledge navigator", children: [
     /* @__PURE__ */ jsxs5("div", { className: "brain-panel-heading", children: [
       /* @__PURE__ */ jsxs5("span", { children: [
@@ -537,7 +536,7 @@ function BrainTierNavigator({ onClose }) {
           "Back"
         ] })
       ] }),
-      roots.length ? /* @__PURE__ */ jsx6("ul", { className: "brain-tree", children: roots.map((group) => /* @__PURE__ */ jsx6(GroupRow, { group, depth: 0 }, group.id)) }) : /* @__PURE__ */ jsx6("p", { className: "brain-help", children: "Flat projection \xB7 no presentation groups supplied." }),
+      roots.length ? /* @__PURE__ */ jsx6("ul", { className: "brain-tree", children: roots.map((group) => /* @__PURE__ */ jsx6(GroupRow, { group, depth: 0, hierarchy, expandedGroups, filters, store }, group.id)) }) : /* @__PURE__ */ jsx6("p", { className: "brain-help", children: "Flat projection \xB7 no presentation groups supplied." }),
       /* @__PURE__ */ jsxs5("div", { className: "brain-nav-actions", children: [
         /* @__PURE__ */ jsx6("button", { onClick: () => store.setExpandedGroups(hierarchy.groups.map((group) => group.id)), children: "Expand all" }),
         /* @__PURE__ */ jsx6("span", { children: "\xB7" }),

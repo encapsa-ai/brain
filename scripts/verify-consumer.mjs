@@ -10,18 +10,23 @@ import { chromium } from '@playwright/test'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sandbox = mkdtempSync(join(tmpdir(), 'brain-consumers-'))
 const packageDir = join(root, 'packages/brain')
+const workspaceManifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const run = (command, args, cwd = root) => execFileSync(command, args, { cwd, stdio: 'inherit', timeout: 300000 })
 run('pnpm', ['--filter', '@encapsa-dev/brain', 'pack', '--pack-destination', sandbox])
 const tarball = join(sandbox, readdirSync(sandbox).find(file => file.endsWith('.tgz')))
-const [{ files }] = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: packageDir, encoding: 'utf8' }))
-const paths = files.map(file => file.path)
+const paths = execFileSync('tar', ['-tzf', tarball], { encoding: 'utf8' }).trim().split('\n').map(path => {
+  assert.ok(path.startsWith('package/'), `Unexpected tarball path: ${path}`)
+  return path.slice('package/'.length)
+})
 for (const path of ['dist/styles.css', 'dist/index.js', 'dist/core/index.d.ts', 'dist/react/index.d.ts', 'LICENSE', 'README.md', 'CHANGELOG.md']) assert.ok(paths.includes(path), `Missing ${path}`)
 assert.ok(!paths.some(path => /(?:^src\/|fixture|\.map$|\.env|node_modules|tests\/|^app\/)/.test(path)), 'Unexpected material in tarball')
 const packageJson = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8'))
-assert.equal(packageJson.version, '0.1.1')
+const packedPackageJson = JSON.parse(execFileSync('tar', ['-xOzf', tarball, 'package/package.json'], { encoding: 'utf8' }))
+assert.equal(packedPackageJson.name, packageJson.name)
+assert.equal(packedPackageJson.version, packageJson.version)
 assert.equal(packageJson.license, 'BSD-3-Clause')
 assert.ok(!packageJson.dependencies?.['@encapsa-dev/brain'], 'Self dependency')
-assert.equal(JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).private, true)
+assert.equal(workspaceManifest.private, true)
 assert.equal(readFileSync(join(root, 'README.md'), 'utf8'), readFileSync(join(packageDir, 'README.md'), 'utf8'))
 
 const matrix = [
@@ -37,6 +42,7 @@ try {
     const consumer = join(sandbox, entry.name)
     cpSync(join(root, 'examples/vite-react'), consumer, { recursive: true, filter: path => !path.includes('node_modules') && !path.includes('/dist') && !path.endsWith('pnpm-lock.yaml') })
     const manifest = JSON.parse(readFileSync(join(consumer, 'package.json'), 'utf8'))
+    manifest.packageManager = workspaceManifest.packageManager
     manifest.dependencies = { '@encapsa-dev/brain': `file:${tarball}`, react: entry.react, 'react-dom': entry.react, ...(entry.fiber ? { three: '0.186.1', '@react-three/fiber': entry.fiber } : {}) }
     manifest.devDependencies['@types/react'] = entry.types
     manifest.devDependencies['@types/react-dom'] = entry.react.startsWith('18') ? '^18.3.0' : '^19.2.0'

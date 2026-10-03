@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - Unreleased
+## [0.1.2] - 2026-10-02
+
+### Fixed
+
+- Preserved keyboard focus on hierarchy controls when graph filters update, including collapse and expand navigation.
+- Made CI stop with server diagnostics if the production demo never becomes ready for browser tests.
+
+### Changed
+
+- Made packed-consumer verification inspect the tarball's files and version with the workspace's pinned pnpm release.
+- Added a single release check that runs build, test, browser, consumer, and pack validation before the scoped package publishes.
+
+## [0.1.1] - 2026-10-02
 
 ### Added
 
@@ -32,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - React 18 support is additive; the demo continues to use React 19.
 - No Forge or application backend, data model, or environment-variable changes.
-- `0.1.0` was published from the workspace root and is not a usable library integration baseline. After this release, install `0.1.1` from the corrected package.
+- `0.1.0` was published from the workspace root and is not a usable library integration baseline. The corrected package began with `0.1.1`.
 
 ## [0.1.0] - 2026-10-02
 
