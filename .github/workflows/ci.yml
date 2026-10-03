@@ -1,0 +1,45 @@
+name: Library checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:package
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm verify:consumer
+      - run: pnpm build
+      - name: Browser regression suite
+        run: |
+          pnpm start > /tmp/brain-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then break; fi
+            sleep 1
+          done
+          BRAIN_TEST_URL=http://127.0.0.1:3000 pnpm test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-evidence
+          path: |
+            .consumer-proof/results.json
+            /tmp/brain-playwright-results
+            /tmp/brain-server.log

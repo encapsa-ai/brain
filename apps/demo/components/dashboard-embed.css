@@ -1,0 +1,24 @@
+.embed-demo { height: 100dvh; display: grid; grid-template-columns: 240px minmax(0, 1fr) 180px; background: #fff; color: #243444; font: 14px/1.5 var(--font-sans, sans-serif); }
+.embed-demo[data-theme='dark'] { background: #101721; color: #e2eaf0; }
+.embed-sidebar, .embed-insights { padding: 16px; overflow: auto; border-inline-end: 1px solid #a0aaba40; }
+.embed-insights { border-inline-start: 1px solid #a0aaba40; border-inline-end: 0; }
+.embed-sidebar h2, .embed-insights h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; margin: 24px 0 12px; opacity: .7; }
+.embed-sidebar p, .embed-insights p { margin: 12px 0; }
+.embed-brand { color: inherit; font-weight: 650; text-decoration: none; }
+.embed-note { font-size: 12px; opacity: .7; }
+.embed-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.embed-header { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #a0aaba40; padding: 12px 16px; flex-wrap: wrap; }
+.embed-header > span { margin-inline-end: auto; }
+.embed-header button { border: 0; border-radius: 5px; color: inherit; background: transparent; padding: 6px 10px; cursor: pointer; font: inherit; }
+.embed-header button[aria-selected='true'] { background: #7d9dac25; }
+.embed-demo button:focus-visible, .embed-demo a:focus-visible { outline: 2px solid #197b72; outline-offset: 3px; }
+.embed-theme { font-size: 12px !important; }
+.embed-content { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+.embed-table { padding: 24px; height: 100%; overflow: auto; }
+.embed-table h1 { font-size: 20px; margin: 0 0 24px; }
+.embed-table > div { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #a0aaba40; }
+.embed-table > div > span, .embed-table p { opacity: .7; }
+.embed-table p { margin-top: 24px; }
+.embed-composer { padding: 16px; border-top: 1px solid #a0aaba40; opacity: .7; text-align: center; font-size: 12px; }
+@media (max-width: 1100px) { .embed-demo { grid-template-columns: 208px minmax(0, 1fr); } .embed-insights { display: none; } }
+@media (max-width: 640px) { .embed-demo { grid-template-columns: minmax(0, 1fr); } .embed-sidebar { display: none; } .embed-header { gap: 8px; } .embed-theme { margin-inline-start: auto; } }

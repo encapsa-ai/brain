@@ -1,12 +1,14 @@
 {
-  "consumer": "/tmp/brain-package-proof-RkanFs/consumer",
-  "tarball": "/tmp/brain-package-proof-RkanFs/encapsa-dev-brain-0.1.0.tgz",
+  "version": "0.1.1",
+  "node": "v24.16.0",
   "packageFiles": [
+    "CHANGELOG.md",
+    "LICENSE",
     "README.md",
     "dist/adapters/forge/index.d.ts",
     "dist/adapters/forge/index.js",
-    "dist/chunk-2HU2SLAM.js",
-    "dist/chunk-CEQNBTLN.js",
+    "dist/chunk-MXCBS66O.js",
+    "dist/chunk-SYGCU6XI.js",
     "dist/core/index.d.ts",
     "dist/core/index.js",
     "dist/index.d.ts",
@@ -15,16 +17,51 @@
     "dist/layout.worker.js",
     "dist/react/index.d.ts",
     "dist/react/index.js",
-    "dist/renderer-types-D_zZdd87.d.ts",
+    "dist/renderer-types-jvhXy3Xl.d.ts",
     "dist/styles.css",
     "dist/types-CxL1neFM.d.ts",
     "dist/webgl/index.d.ts",
     "dist/webgl/index.js",
     "package.json"
   ],
-  "optionalGraphicsInstalled": false,
-  "viteBuild": "passed",
-  "strictDeclarationsWithoutGraphicsTypes": "passed",
-  "packedSsrImports": "passed",
-  "node": "v24.16.0"
+  "matrix": [
+    {
+      "name": "react18-svg",
+      "react": "18.3.1",
+      "types": "^18.3.1",
+      "build": "passed",
+      "ssr": "passed",
+      "browserSelectionAndRotation": "passed",
+      "optionalGraphicsInstalled": false
+    },
+    {
+      "name": "react19-svg",
+      "react": "19.2.4",
+      "types": "^19.2.0",
+      "build": "passed",
+      "ssr": "passed",
+      "browserSelectionAndRotation": "passed",
+      "optionalGraphicsInstalled": false
+    },
+    {
+      "name": "react18-webgl",
+      "react": "18.3.1",
+      "types": "^18.3.1",
+      "fiber": "8.18.0",
+      "build": "passed",
+      "ssr": "passed",
+      "browserSelectionAndRotation": "passed",
+      "optionalGraphicsInstalled": true
+    },
+    {
+      "name": "react19-webgl",
+      "react": "19.2.4",
+      "types": "^19.2.0",
+      "fiber": "9.8.1",
+      "build": "passed",
+      "ssr": "passed",
+      "browserSelectionAndRotation": "passed",
+      "optionalGraphicsInstalled": true
+    }
+  ]
 }

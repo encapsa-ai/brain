@@ -1,107 +1,80 @@
-# Verification evidence — 0.1.0 release candidate
+# 0.1.1 readiness audit and verification
 
-This is an implemented library and synthetic demonstration, not a production Forge integration. The package has not been published. Verification below distinguishes executed checks from tests that could not run in this environment.
+This release prepares the library for its first application integration. It does not integrate a live application, change Forge, publish to npm, or establish a compliance certification. The initial source baseline was `574ed1c`; npm's `0.1.0` manifest was independently inspected.
 
-## Running the implementation
+## Approved scope
 
-- In v0, open the preview at `/`. No integration, database, credential, or external visualization asset is required.
-- For a local checkout obtained through GitHub: install with `pnpm install`, build the library with `pnpm build:package`, then run `pnpm dev`. Build the package first because `/package-proof` imports its distribution rather than source aliases.
-- `pnpm build` builds the package and production Next.js application. `pnpm start` serves that production build.
-- `pnpm verify:consumer` creates a fresh temporary directory, packs the library, installs that exact tarball in the independent Vite React example, typechecks/builds it, and executes its Node SSR proof.
-- `/package-proof` is a working Next.js client/server-boundary example using package exports. `examples/next-consumer` and `examples/vite-react` contain the consumer sources.
+Jordan approved the complete 0.1.1 scope: correct packaging, sidebar preview, embedded explorer, React 18/19 packed-consumer compatibility, lifecycle/security fixes, documentation and metadata, CI, and a synthetic dashboard example. Changes remain in `encapsa-ai/brain` on a review branch; `Toastability/app` was inspected read-only for compatibility/layout.
 
-Public entry points, controlled/uncontrolled APIs, composition, layout adapters, data-source boundaries, and host responsibilities are documented in `packages/brain/README.md`. The exports are the package root, `/core`, `/react`, `/webgl`, `/adapters/forge`, `/styles.css`, and optional `/layout-worker`.
+In scope: `packages/brain` source/tests/generated distribution/package metadata, root release tooling/manifests/docs, demo routes/components/browser tests, and CI. Out of scope: host application edits, production data, backend authorization, Forge schemas/receipts, deployment secrets, merging, npm publication. Rollback before merge is closing the PR; after merge, revert its commits rather than attempting to overwrite an npm version.
 
-## Executed automated checks
+## Audit findings
 
-| Check | Result |
+| Priority | Finding | 0.1.1 disposition |
+| --- | --- | --- |
+| Blocker | npm 0.1.0 contained the root demo workspace, including a self-dependency, rather than the exported library | Root renamed/private with a publish guard; nested package is the sole publish target; actual tarball tested |
+| Blocker | First application host uses React 18; library claimed React 19 only | Additive peer support, tested with React 18.3.1/Fiber 8.18.0 and React 19.2.4/Fiber 9.8.1 |
+| High | Existing compact explorer still exposed several controls and opened its own overlay | New read-only `BrainPreview` with one host-owned expand callback |
+| High | Full explorer used fixed default height and switched to miniature UI in narrow host tabs | `variant="embedded"` fills a constrained parent and retains full controls |
+| High | Ready detail content could survive a graph replacement if the host reused a revision | Invalidate details on every replacement; regression test |
+| High | A disposed/resumed store could accept an old subscription callback | Increment generation on disposal and clear subscription; regression test |
+| High | Malformed receipt refs could match generic nodes with absent resource keys | Reject matching without a resource identity; regression test |
+| Medium | Layout dictionaries inherited object properties, conflicting with arbitrary node IDs | Null-prototype position dictionaries and own-property checks; regression tests |
+| Medium | Incoming relationship navigation could remain on the already selected target | Navigate to the opposite endpoint |
+| Medium | Document visibility could restart work for an offscreen viewport | Combine intersection and document visibility |
+| Medium | Browser accessibility test found light-theme primary-action contrast failure | Dedicated accessible action-text token; browser test rerun |
+| Medium | Small sidebar nodes visually overwhelmed the miniature | Smaller preview-only defaults; desktop visual check |
+| Medium | Hiding the composition tray left an unusable Add to context action | Hide default inspector composition action with the tray |
+| Medium | Public package metadata/license/docs contradicted the repository | BSD-3-Clause synchronized; root README/GIF copied at prepack; metadata and docs completed |
+
+## Executed checks
+
+Environment: Linux sandbox, Node 24.16.0, pnpm 12.3.4, Playwright Chromium 153 with software WebGL. Exact dependency resolution remains in the lockfile; no root dependency versions were upgraded.
+
+| Gate | Result |
 | --- | --- |
-| `pnpm typecheck` | Passed for the application and strict library configuration. |
-| `pnpm lint` | Passed. |
-| `pnpm test` | **99 tests passed in 12 files.** |
-| Library ESM and declaration build | Passed through `pnpm verify:consumer`. |
-| `npm pack --dry-run --json --ignore-scripts` | Passed; distribution inventory checked by the verification script. |
-| Actual `npm pack` and tarball installation | Passed in a fresh Vite React consumer. |
-| Clean consumer strict TypeScript and Vite production build | Passed without Three, Fiber, or `@types/three` installed. |
-| Packed core, Forge adapter and React SSR imports | Passed in Node without `window`, `document`, or an initialized canvas. |
-| `pnpm exec next build` after the package build | Passed; `/` and `/package-proof` prerendered successfully. |
-| `pnpm exec playwright test --list` | Discovered **18 tests in 4 files**. Discovery is not execution. |
+| `pnpm install --frozen-lockfile` | Passed |
+| `pnpm typecheck` | Passed |
+| `pnpm lint` | Passed |
+| `pnpm test` | 107 tests passed in 13 files |
+| Library ESM and declaration build | Passed |
+| Static production demo build | Passed for `/`, `/embed`, and `/package-proof` |
+| `pnpm test:browser` | 20 browser tests passed |
+| `pnpm verify:consumer` | Four packed-consumer lanes passed |
+| Package contents/license/readme assertions | Passed |
+| React/core/adapters SSR imports | Passed in both React generations |
+| Optional graphics absent in SVG-only consumers | Verified |
+| `git diff --check` | Passed |
 
-The final consumer uses React/React DOM 19.2.4, TypeScript 5.7.3 and Vite 8.3.2 on Node 24.16.0. React 18 compatibility is not claimed. The workspace lockfile records the complete dependency graph.
+The packed-consumer matrix installs the actual tarball in isolated directories, uses strict peer validation, runs strict TypeScript and production Vite builds, then checks browser preview expansion, actual renderer readiness, selection, and rotation. The four lanes are React 18 SVG, React 19 SVG, React 18/Fiber 8 WebGL, and React 19/Fiber 9 WebGL. `docs/consumer-proof.json` contains the portable result summary; `.consumer-proof/results.json` is the ignored local/CI output.
 
-The checked tarball contains 19 files: README, package manifest, compiled ESM, declarations, worker and scoped CSS. Its recorded size was approximately 65.6 kB compressed / 294.8 kB unpacked. The script rejects source directories, source maps, fixtures, tests, environment files and `node_modules`, and asserts that required CSS and public declarations exist. `docs/consumer-proof.json` records the final inventory and temporary consumer location; those temporary paths are evidence, not portable installation instructions.
+Browser coverage includes search/selection, incoming/outgoing relationship views, discrete rotation, dragging versus clicking, fit/reset, hierarchy collapse/expand, simulated receipt uncertainty, dynamic fixture mutations, 5,000-node aggregation/list navigation, context loss and retry, worker fallback, fullscreen rejection/overlay focus restoration, hidden/zero-size recovery, light/dark accessibility checks, mobile/200% zoom, packed Next client imports, and the new host-tab flow.
 
-### Regression coverage added during hardening
+## Visual QA inventory
 
-- Custom layout timeout/cancellation aborts its signal even when the adapter ignores cancellation.
-- Nonfinite, incomplete, wrong-scope and stale-revision layout responses use a bounded fallback.
-- Completed custom positions are associated with their exact filtered projection, layout, seed and dimension, not just the graph revision.
-- Empty/unavailable projections do not start an initialization deadline for an unmounted WebGL renderer.
-- Renderer readiness is renewed after list/2D switches, empty projections and hidden containers.
-- Scope changes and authorization failures invalidate stale data, details, observations and pending work.
-- Slow-frame windows include frames longer than 250 ms. Demand-rendering idle gaps are excluded, and separate recovery/degradation thresholds prevent oscillation.
+| Claim | Check |
+| --- | --- |
+| One-action sidebar miniature | Desktop `/embed`, approximately 208×168; only Expand is interactive |
+| Expansion belongs to the host | Expand activates Brain tab without requesting fullscreen |
+| Center fills available space | Compare explorer and central content bounds; analytics/composer stay outside |
+| Responsive explorer | Desktop and 390×844 mobile, no horizontal page overflow |
+| Light/dark and selected details | Inspect light overview, dark selected-node inspector, mobile inspector |
+| Reachable fallback | Forced initialization failure, real context loss, explicit retry, SVG/list navigation |
+| Layout/selection continuity | Repeated renderer/tab changes and hidden-container recovery |
 
-Other passing tests cover identity, graph validation, containment/reference cycles, aliases, directed aggregation, immutable layouts, version/page-aware receipt matching, public versus internal receipt evidence, controlled state, multiple instances, composition, escaped text, privacy and SSR-safe imports.
+Visual checks addressed clipping, overflowing host content, crowded preview nodes, and action-button contrast. The mobile inspector intentionally overlays the canvas; it is not an always-visible desktop side panel.
 
-## Real-browser smoke evidence
+## Limits and follow-up
 
-Browser: automated `agent-browser`, HeadlessChrome 151.0.0.0 on Linux x86_64, launched with graphics support. These are actual preview interactions and observations, **not a claim that the standalone Playwright suite ran**.
+- The 5,000-node test proves aggregated navigation and reachable entities, not 60 FPS with all nodes/labels/edges expanded. Hardware FPS, Safari/iOS, Firefox, and screen-reader compatibility were not exhaustively benchmarked.
+- The optional WebGL consumer bundle triggers Vite's large-chunk warning because Three/Fiber are loaded in a separate graphics chunk. Do not present the total graphics stack as a tiny package; SVG consumers remain independent of it.
+- The generic directed-path helper can traverse undirected edges, and the inspector's path wording merits a future UX clarification. This does not affect explicit directed-edge rendering or the approved dashboard embedding flow.
+- Hosts must authorize metadata before supplying it and merge paginated data into replacement snapshots. This library is not an authentication layer or graph API.
+- Unknown receipt fields remain unknown. No production resolution trace or live source graph was invented.
+- GitHub About recommendations are in DEVELOPMENT; repository settings are intentionally not changed before review.
+- npm metadata/package contents change only when the maintainer publishes 0.1.1. Do not install the existing 0.1.0 artifact for the first integration.
+- No production configuration or environment-variable changes are required. `BRAIN_STATIC_EXPORT` is an optional build-only preview switch.
 
-Checked flows include:
+## Maintainer handoff
 
-- Actual WebGL canvas, discrete rotation changing projected positions, 2D/list switching and consistent inspector selection.
-- Return to WebGL after list/2D, hiding and revealing the container, and clearing an empty search after the initialization deadline interval.
-- Auto-rotation starts off and pauses on unrelated user interaction; it does not resume automatically.
-- Search, directed relationship navigation, scope/dataset changes, hierarchy, simulated receipt outcomes and historical unmatched evidence.
-- Explicit retry, context-loss recovery and deterministic worker-timeout fallback; the semantic alternative remains available.
-- Rejected native fullscreen opens an honestly labeled overlay. Layered Escape restores the fullscreen trigger and prior page overflow.
-- Light and dark desktop rendering at 1639 × 1071.
-- Narrow 390 × 844 layout, expanded mobile explorer, accessible-list drawer and focus restoration after Escape, with no horizontal document overflow.
-- 200% **CSS zoom emulation** at 1639 × 1071: responsive navigator remains reachable and no horizontal document overflow. This is not a native-browser-zoom or screen-reader certification.
-- `/package-proof`: the packaged accessible list selects its canonical entity and opens the inspector with zero canvases present.
-
-The saved Playwright keyboard-only journey and axe assertions are not counted as executed. Browser smoke checks establish individual keyboard/focus behaviors, not a comprehensive assistive-technology audit.
-
-## Performance: measurements versus goals
-
-### Software-renderer orbit observations
-
-Environment: development preview `/`, automated HeadlessChrome 151 on Linux x86_64, ANGLE Vulkan **SwiftShader Device (Subzero)**, viewport 1639 × 1071, canvas 1345 × 608 CSS and backing pixels, DPR 1, brain layout, high-quality setting, no selected node. Physical GPU/CPU model was not available.
-
-Method: a temporary browser-only wrapper timestamped the scene's WebGL `clear` calls during auto-orbit. Consecutive intervals were sorted for p50/p95. The wrapper was restored afterward; no instrumentation, telemetry, identifiers or payload capture was added to the shipped demo. These are render-cadence intervals, not GPU timer-query measurements.
-
-| Visible / loaded nodes | Shown / loaded edges | Intervals | p50 | p95 | Maximum |
-| --- | --- | --- | --- | --- | --- |
-| 100 / 100 | 123 / 123 | 120 | 114.9 ms | 136.9 ms | 145.0 ms |
-| 1,000 / 1,000 | 0 / 1,248 | 116, partial capture | 363.1 ms | 426.3 ms | 456.9 ms |
-
-The 1,000-node capture did not reach its intended 120 intervals before the browser wait budget; the 116 captured intervals were retained, not presented as a completed 120-sample run. The focused-edge policy intentionally shows zero edges without a selected entity at this scale, as disclosed in the legend. This is not a dense-edge benchmark.
-
-These slow software-renderer observations exposed the previous exclusion of severe frame intervals from adaptive-quality accounting. That exclusion was fixed; four frame-monitor tests now cover severe stalls, threshold progression, recovery hysteresis and idle gaps. A complete real-time four-window performance downgrade was not timed end-to-end.
-
-After the final monitor change, an idle 1,000-node WebGL instance produced **zero clear calls over an observed 801 ms quiet interval**. This is bounded evidence of demand rendering at rest, not a universal performance guarantee.
-
-**The requested 50 FPS target on a named modern physical desktop remains unmeasured and unverified.** The software results are below that goal and must not be marketed as desktop GPU performance. The 5,000-node fixture uses initial level-of-detail aggregation; no all-label/all-edge rendering guarantee or 5,000-visible-node frame benchmark is claimed.
-
-### Initial-page Web Vitals
-
-A separate automated development-preview navigation of `/` at 1639 × 1071, DPR 1, measured:
-
-- TTFB: 149.9 ms.
-- FCP: 592 ms.
-- LCP: 592 ms, a paragraph element rather than completion of the WebGL scene.
-- CLS: 0 during the recorded navigation.
-- Reported hydration interval: 158.2 ms.
-- INP: unavailable; the navigation measurement contained no qualifying interaction.
-
-These are one-run laboratory observations with development tooling, not production field data or a proof of interaction readiness.
-
-## Blocked and unverified gates
-
-- **Standalone Playwright execution is blocked** by missing Chromium OS libraries, including `libglib-2.0.so.0`. The targeted `playwright install-deps chromium` recovery failed because this sandbox has no `apt-get`. Reinstall loops were not attempted. All 18 browser specifications remain unverified as a suite.
-- Consequently, automated axe results and the complete saved keyboard-only journey are **unverified**, not passing accessibility claims. Native mobile devices, screen-reader combinations and native browser zoom also remain unverified.
-- Physical desktop GPU frame performance, production field Web Vitals and exhaustive browser coverage remain unverified.
-- Three emits a `Clock` deprecation warning through the current compatible Fiber runtime; it did not prevent the verified canvas interactions or production build. Vitest emits a future Vite config-loader warning; checks pass under the installed versions.
-- Publishing, npm namespace availability/ownership, public repository destination, license/assets approval and any real Forge host integration require operator decisions. The package remains `UNLICENSED` pending that review; MIT is recommended, not represented as approved.
-
-No production endpoint, Forge/Octane source, authorization policy, shared secret, external service, storage backend, deployment or npm publication was touched. The unresolved validation gates above must be completed in a suitable environment before representing this candidate as fully acceptance-tested.
+Review the PR, merge, run the release checklist in DEVELOPMENT, and publish only `packages/brain`. The application integration should follow in a separate PR, using the screenshot's preview → Brain tab → center-panel pattern and the React 18 compatibility lane.

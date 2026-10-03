@@ -3,9 +3,19 @@ import './globals.css'
 import '../packages/brain/src/styles/brain.css'
 
 export const metadata: Metadata = {
-  title: 'Brain Explorer — @encapsa-dev/brain',
-  description: 'Explore connected knowledge in an interactive 3D brain, 2D graph, or accessible list. An offline, synthetic demonstration of the reusable @encapsa-dev/brain library.',
-  generator: 'v0.app',
+  metadataBase: new URL('https://brain-two-lake.vercel.app'),
+  title: 'Encapsa Brain | React Knowledge Graph & 3D Brain Visualization',
+  description: 'Explore @encapsa-dev/brain: an open-source React and TypeScript library for interactive 3D knowledge graphs, accessible 2D exploration, and compact AI-context dashboard previews.',
+  applicationName: 'Encapsa Brain',
+  keywords: ['React knowledge graph', 'brain visualization', 'TypeScript', '3D graph visualization', 'AI context', 'Encapsa'],
+  authors: [{ name: 'Encapsa AI', url: 'https://encapsa.ai' }],
+  openGraph: {
+    type: 'website',
+    title: 'Encapsa Brain: Explore connected knowledge',
+    description: 'Composable React knowledge visualization. Try the interactive brain, 2D graph, accessible explorer, and dashboard preview.',
+    siteName: 'Encapsa Brain',
+  },
+  twitter: { card: 'summary', title: 'Encapsa Brain', description: 'Open-source React knowledge graph and 3D brain visualization by Encapsa.' },
   icons: {
     icon: [
       {

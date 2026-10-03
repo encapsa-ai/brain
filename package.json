@@ -1,6 +1,7 @@
 {
-  "name": "@encapsa-dev/brain",
-  "version": "0.1.0",
+  "name": "encapsa-brain-workspace",
+  "version": "0.1.1",
+  "description": "Development workspace and interactive demo for @encapsa-dev/brain.",
   "homepage": "https://github.com/encapsa-ai/brain#readme",
   "repository": {
     "type": "git",
@@ -11,10 +12,7 @@
   },
   "author": "Encapsa AI (https://encapsa.ai)",
   "license": "BSD-3-Clause",
-  "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
+  "private": true,
   "packageManager": "pnpm@12.3.4",
   "scripts": {
     "dev": "next dev",
@@ -25,7 +23,9 @@
     "lint": "eslint app apps/demo packages/brain/src packages/brain/tests eslint.config.mjs vitest.config.ts playwright.config.ts",
     "test": "vitest run",
     "test:browser": "playwright test",
-    "verify:consumer": "node scripts/verify-consumer.mjs"
+    "verify:consumer": "node scripts/verify-consumer.mjs",
+    "pack:library": "pnpm --filter @encapsa-dev/brain pack",
+    "prepublishOnly": "node -e \"throw new Error('Do not publish the demo workspace. Use pnpm --filter @encapsa-dev/brain publish --access public from a reviewed checkout.')\""
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

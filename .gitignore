@@ -13,3 +13,11 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+*.tsbuildinfo
+*.tgz
+test-results/
+playwright-report/
+.preview/
+.consumer-proof/
+out/
+next-env.d.ts

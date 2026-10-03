@@ -1,138 +1,263 @@
 # @encapsa-dev/brain
 
-A framework-independent graph projection core, React explorer, and optional 3D knowledge visualization. First working release candidate, **not published**. All demo data is fictional. This package is a viewer, not a graph database, inference engine, authorization layer, or Forge client.
+<img width="100%" alt="Encapsa Brain Visualization" src="https://github.com/user-attachments/assets/b895d24a-6f28-4b58-82d5-7a34d3131c77" />
 
-## Entry points
+**Make connected knowledge explorable.** Encapsa Brain is an open-source React and TypeScript visualization library for knowledge graphs, AI context, documentation networks, and application dashboards. Use an interactive 3D brain, a lightweight 2D graph, or a keyboard-accessible list with a shared selection and inspection model.
 
-| Entry | Purpose |
-| --- | --- |
-| `@encapsa-dev/brain` | Batteries-included React explorer; no eager graphics import |
-| `@encapsa-dev/brain/core` | Types, validation, identity, indexing, hierarchy, projection, layout, store, evidence matching |
-| `@encapsa-dev/brain/react` | Composable provider, hooks and UI components; 2D/list need no graphics packages |
-| `@encapsa-dev/brain/webgl` | Optional R3F/Three renderer |
-| `@encapsa-dev/brain/adapters/forge` | Pure catalog, resolve, generation, internal receipt adapters and Forge preset |
-| `@encapsa-dev/brain/styles.css` | Explicit, scoped CSS; no global reset or body changes |
-| `@encapsa-dev/brain/layout-worker` | Optional worker module; host owns Worker construction and bundler URL |
+Built by [Encapsa AI](https://encapsa.ai). Your application supplies the data; the library supplies exploration, not a database, an LLM, or an authorization service.
 
-ESM, strict TypeScript declarations. Tested with React/React DOM 19.2.4, Fiber 9.8.1, Three 0.186.1, TypeScript 5.7.3, Node 24.16.0. React 18 compatibility is **not** claimed. React is a peer, and Three/Fiber peers are optional. No Next.js, Tailwind, shadcn, network service or key is required by the package.
+[Interactive demo](https://brain-two-lake.vercel.app) · [npm package](https://www.npmjs.com/package/@encapsa-dev/brain) · [GitHub](https://github.com/encapsa-ai/brain) · [Issues](https://github.com/encapsa-ai/brain/issues)
 
-## Basic 2D or accessible use
+## Why Encapsa Brain?
+
+- **A brain you can explore:** Drag to orbit, rotate with buttons, zoom, select nodes, inspect details, and follow explicit relationships.
+- **Small preview, full explorer:** Embed a non-interactive overview with one Expand action, then let your host open a tab, panel, or full explorer.
+- **Composable context:** Group entities into configurable tiers, collapse regions, and distinguish factual context, procedures, and request observations.
+- **Progressive rendering:** Explicitly opt into WebGL. Use SVG or the accessible list without installing Three.js or React Three Fiber.
+- **A library, not a framework:** Framework-independent graph utilities, typed React components, optional Forge adapters, scoped CSS, and no Next.js or Tailwind requirement.
+- **Your data stays under your control:** No built-in fetching, telemetry, storage, API keys, or AI calls. Pass only data your host has authorized.
+
+## Installation
+
+Version **0.1.1** is the corrected library release. The initial `0.1.0` npm artifact accidentally packaged the demo workspace; it should not be used as the integration baseline.
+
+After 0.1.1 is published:
+
+```bash
+pnpm add @encapsa-dev/brain@0.1.1
+# npm install @encapsa-dev/brain@0.1.1
+```
+
+React and React DOM are peers. Import the stylesheet once at your application's global stylesheet boundary.
+
+| Host | 2D/list | Optional 3D peers |
+| --- | --- | --- |
+| React 18.3.1 | Supported | `@react-three/fiber@8.18.0` + `three@0.186.1` |
+| React 19.2.4 | Supported | `@react-three/fiber@9.8.1` + `three@0.186.1` |
+
+Do not pair Fiber 9 with React 18. The release consumer matrix checks the listed combinations, not every version allowed by peer ranges. ESM-only output targets modern browsers; development and package tooling require Node 22.12+ (Node 24 recommended).
+
+## Quick start: a knowledge graph
 
 ```tsx
+'use client'
+
 import { BrainExplorer } from '@encapsa-dev/brain'
 import type { BrainGraph } from '@encapsa-dev/brain/core'
 import '@encapsa-dev/brain/styles.css'
 
-export function Knowledge({ graph }: { graph: BrainGraph }) {
-  return <BrainExplorer graph={graph} renderer="svg" layout="cluster"
-    style={{ width: '100%', height: 420 }} />
+const graph: BrainGraph = {
+  schemaVersion: '1',
+  scopeKey: 'authorized-workspace-42',
+  revision: 'snapshot-1',
+  completeness: 'complete',
+  nodes: [
+    { id: 'site', label: 'Website', kind: 'pack', sourceNamespace: 'cms' },
+    { id: 'voice', label: 'Brand voice', kind: 'page', sourceNamespace: 'cms' },
+    { id: 'review', label: 'Review procedure', kind: 'skill', sourceNamespace: 'cms' },
+  ],
+  edges: [
+    { id: 'site-voice', source: 'site', target: 'voice', kind: 'contains',
+      directed: true, evidence: { origin: 'host-supplied' } },
+    { id: 'review-voice', source: 'review', target: 'voice', kind: 'references',
+      directed: true, evidence: { origin: 'host-supplied' } },
+  ],
+}
+
+export function KnowledgePanel() {
+  return <BrainExplorer graph={graph} renderer="svg" layout="brain"
+    theme="light" style={{ width: '100%', height: 520 }} />
 }
 ```
 
-`renderer`/`layout` initialize the standalone explorer. For controlled ongoing view state use `view` and `onViewChange`. A standalone 2D build does not import or resolve the optional graphics packages. `auto` without a registered 3D renderer is a usable 2D viewer; selecting 3D explains the unsupported capability.
+The library does not infer relationships from node proximity. Provide edges explicitly, and use `completeness: 'partial'` when the loaded graph is only a subset.
 
-## Opt into 3D explicitly
+## Sidebar preview and dashboard tab
 
-Install compatible `three` and `@react-three/fiber` peers in your host; `@types/three` is needed only when developing a typed 3D host. Register the loader **outside** component render so its identity is stable:
+`BrainPreview` is designed for a narrow sidebar: no rotation controls, no node interaction, no inspector, and exactly one Expand button. The default SVG renderer avoids allocating another WebGL context beside the full explorer.
 
 ```tsx
-import { BrainExplorer } from '@encapsa-dev/brain'
+'use client'
+
+import { useState } from 'react'
+import { BrainExplorer, BrainPreview } from '@encapsa-dev/brain'
 import type { BrainGraph } from '@encapsa-dev/brain/core'
-import '@encapsa-dev/brain/styles.css'
 
-const loadWebGLRenderer = () => import('@encapsa-dev/brain/webgl')
-export function Knowledge({ graph }: { graph: BrainGraph }) {
-  return <BrainExplorer graph={graph} renderer="auto" layout="brain"
-    loadWebGLRenderer={loadWebGLRenderer} motion="system" autoFocus
-    nodeSize={{ metric: 'targetTokens', scale: 'sqrt', min: 4, max: 10, unknown: 3 }} />
-}
-```
+export function Dashboard({ graph }: { graph: BrainGraph }) {
+  const [view, setView] = useState<'content' | 'brain'>('content')
 
-Explicit registration is intentional: bundlers otherwise resolve a supposedly optional dynamic import even in a 2D-only consumer. The working demo registers this loader, and the clean Vite consumer deliberately does not.
-
-## Composable equivalent
-
-```tsx
-import { BrainProvider, BrainToolbar, BrainTierNavigator, BrainViewport,
-  BrainInspector, BrainLegend, BrainAccessibleList } from '@encapsa-dev/brain/react'
-import { forgePreset } from '@encapsa-dev/brain/adapters/forge'
-
-<BrainProvider graph={authorizedGraph} preset={forgePreset}>
-  <div className="brain-explorer" style={{ height: 640 }}>
-    <BrainToolbar />
-    <BrainTierNavigator />
-    <BrainViewport renderer="svg" layout="cluster" />
-    <BrainInspector renderNodeDetails={node => <p>{node.label}</p>} />
-    <BrainLegend />
-    <BrainAccessibleList />
+  return <div style={{ display: 'flex', height: 640 }}>
+    <aside style={{ width: 224, padding: 12 }}>
+      <BrainPreview graph={graph} theme="light"
+        style={{ width: '100%', height: 168 }}
+        onExpand={() => setView('brain')}
+        expandLabel="Open Brain tab" />
+    </aside>
+    <section style={{ flex: 1, minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <nav aria-label="Dashboard views">
+        <button onClick={() => setView('content')}>Content</button>
+        <button onClick={() => setView('brain')}>Brain</button>
+      </nav>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        {view === 'brain'
+          ? <BrainExplorer graph={graph} variant="embedded" renderer="svg"
+              theme="light" showContextTray={false} defaultNavigatorOpen={false} />
+          : <p>Your existing dashboard content</p>}
+      </div>
+    </section>
   </div>
+}
+```
+
+The host owns its tabs and focus management. `onExpand` does not trigger browser fullscreen or navigate automatically. `variant="embedded"` fills a height-constrained parent and retains the full explorer on narrow screens; provide `min-height: 0` through flex ancestors.
+
+The synthetic `/embed` demo implements this pattern with Content, Conversation, and Brain tabs. It is a layout example, not an integration with a live customer application.
+
+## Opt into interactive 3D
+
+For a React 18 host:
+
+```bash
+pnpm add three@0.186.1 @react-three/fiber@8.18.0
+```
+
+For a React 19 host, use Fiber `9.8.1` instead. Keep the loader function stable and outside render:
+
+```tsx
+const loadWebGLRenderer = () => import('@encapsa-dev/brain/webgl')
+
+<BrainExplorer
+  graph={graph}
+  renderer="auto"
+  layout="brain"
+  loadWebGLRenderer={loadWebGLRenderer}
+  motion="system"
+  nodeSize={{ metric: 'targetTokens', scale: 'sqrt', min: 4, max: 10, unknown: 3 }}
+/>
+```
+
+`auto` without a loader renders SVG. A failed WebGL initialization, context loss, or sustained slow-frame condition falls back to 2D with an explicit retry. This is a rendering fallback, never a retry through a less-restricted data source.
+
+## Public entry points
+
+| Import | Purpose |
+| --- | --- |
+| `@encapsa-dev/brain` | React explorer, preview, components, hooks, public types |
+| `@encapsa-dev/brain/core` | Framework-independent graph, identity, store, layout, projection, and receipt-matching utilities |
+| `@encapsa-dev/brain/react` | Provider, composable React components, hooks |
+| `@encapsa-dev/brain/webgl` | Optional Three.js / React Three Fiber renderer |
+| `@encapsa-dev/brain/adapters/forge` | Pure Forge DTO converters and presentation preset |
+| `@encapsa-dev/brain/styles.css` | Scoped styles and CSS custom properties |
+| `@encapsa-dev/brain/layout-worker` | Optional worker module; host owns worker construction |
+
+Neither the package root nor the 2D entry points eagerly imports the 3D renderer. No CommonJS or legacy-browser support is claimed.
+
+## Compose your own explorer
+
+```tsx
+import {
+  BrainProvider, BrainExplorerShell, BrainToolbar, BrainViewport,
+  BrainInspector, BrainTierNavigator, BrainLegend, BrainAccessibleList,
+} from '@encapsa-dev/brain/react'
+
+<BrainProvider graph={graph}>
+  <BrainExplorerShell variant="embedded" showContextTray={false} theme="light" />
 </BrainProvider>
 ```
 
-The `.brain-explorer` wrapper supplies the scoped CSS tokens; compose layout with your own CSS. `BrainExplorerShell` provides the demonstrated layout for an existing provider. Each provider creates an independent store, camera bus and pending-work lifetime.
+For fully custom layouts, compose `BrainViewport`, `BrainInspector`, `BrainToolbar`, `BrainTierNavigator`, `BrainLegend`, and `BrainAccessibleList` inside a `.brain-explorer` wrapper. The wrapper supplies CSS tokens; your own layout must give the viewport a nonzero size.
 
-### Selection, groups, filters, view and controller
+### Main configuration
 
-- Uncontrolled: `defaultSelectedNodeId`, `defaultExpandedGroups`, `defaultView`.
-- Controlled: `selectedNodeId` / `onSelectedNodeChange`, `expandedGroups` / `onExpandedGroupsChange`, `filters` / `onFiltersChange`, `view` / `onViewChange`. The host must confirm changes to controlled values.
-- `BrainFilters`: `{ query, kinds, neighborhood: 0 | 1 | 2, groupId }`. Query searches only safe labels and supplied refs. An empty `kinds` list means all kinds.
-- Explorer `ref`: `{ focusNode(id), fit(), resetCamera(), rotate(yawRadians, pitchRadians) }`.
-- `useBrain()` exposes the current snapshot, index, hierarchy, presentation projection, typed store and camera bus. Frame updates stay renderer-owned, outside React interaction state.
-- Known selected IDs survive same-scope immutable updates. Removed/unavailable selections get a clear empty inspector, not an invented authorization explanation. Scope changes remount the provider's private state boundary.
+| Prop / extension | Behavior |
+| --- | --- |
+| `graph` | Immutable, already-authorized snapshot |
+| `preset` | Node/edge styles, configurable tier functions or explicit hierarchy |
+| `renderer`, `layout` | Initial standalone view; use `view` + `onViewChange` for ongoing controlled state |
+| `variant="embedded"` | Fill parent without automatic miniature UI |
+| `showContextTray={false}` | Hide composition UI when the host only needs exploration |
+| `theme` | `light` or `dark`; override scoped `--brain-*` variables for your brand |
+| `selectedNodeId`, `onSelectedNodeChange` | Controlled selection |
+| `defaultSelectedNodeId` | Initial uncontrolled selection |
+| `expandedGroups`, `onExpandedGroupsChange` | Controlled hierarchy |
+| `filters`, `onFiltersChange` | Loaded-label/ref query, kinds, neighborhood, group |
+| `view`, `onViewChange` | Controlled renderer, layout, quality |
+| `nodeSize` | Clamped metric-based radii; missing metrics stay distinct |
+| `onRequestDetails` | Lazy host-authorized details, with abort/scope/revision checks |
+| `renderNodeDetails`, `renderNodeActions` | Custom inspector content and actions |
+| `nodeStyleResolver`, `edgeStyleResolver` | Renderer-neutral styling |
+| `layoutAdapter`, `layoutWorkerFactory` | Bounded custom layouts / worker execution |
+| `toolbarStart`, `toolbarEnd`, `receiptControls` | Host interface slots |
+| `loadingSlot`, `emptySlot`, `errorSlot`, `unsupportedSlot` | Replaceable status UI |
+| `motion` | `system`, `reduced`, or `full`; auto-rotate is off by default |
+| `onDiagnostic` | Optional content-free diagnostics; no built-in telemetry |
 
-### Extension points
+The explorer ref exposes `focusNode(id)`, `fit()`, `resetCamera()`, and `rotate(yawRadians, pitchRadians)`. Controlled values change only when the host accepts their callbacks.
 
-`BrainPreset` supports custom node/edge registries, glyphs, shape/color tokens, an explicit hierarchy or ordered `TierDefinition[]` grouping functions with minimum visibility levels. `flatPreset` makes no Forge assumptions. `nodeStyleResolver` / `edgeStyleResolver` are renderer-neutral. `renderExtraWebGL` is a renderer-specific React/R3F extension. `renderNodeDetails` / `renderNodeActions` customize the inspector.
+### Graph identity and hierarchy
 
-`loadingSlot`, `emptySlot`, `errorSlot`, `unsupportedSlot` replace status views. `toolbarStart`, `toolbarEnd`, `children` and `receiptControls` compose host chrome without portals outside fullscreen.
+Use stable, namespaced node IDs. Labels, slugs, and content hashes are not globally unique identities. `namespacedId(scopeKey, sourceNamespace, resourceKey)` and `snapshotId(resourceId, version)` are available from `/core`.
 
-`layoutAdapter(input)` accepts graph scope/revision, seed, dimensions, previous positions and an AbortSignal. The controller bounds completion at 1.5 seconds; cancellation and stale worker responses are discarded. `layoutWorkerFactory` accepts a Worker-compatible port and protocol-1 messages. The shipped deterministic layouts are linear, bounded algorithms, not unbounded force simulations.
+Keep the canonical graph separate from presentation grouping. Hierarchy collapse aggregates loaded members without deleting canonical nodes. Declare whether counts are loaded counts or authoritative totals; an unknown total stays unknown.
 
-### Sizes and metric semantics
+### Safe details and data loading
 
-```tsx
-<BrainExplorer graph={graph} renderer="svg" style={{ width: 320, height: 240 }} />
-<BrainExplorer graph={graph} renderer="svg" style={{ width: 640, height: 420 }} />
-<BrainExplorer graph={graph} renderer="svg"
-  style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }} />
-```
+`BrainDataSource` supports `loadGraph({ scopeKey, cursor, signal })`, optional `loadDetails({ scopeKey, nodeId, graphRevision, signal })`, and optional revision subscriptions. Invoke `store.loadGraph(...)` from your host data layer; pass the detail loader as `onRequestDetails`.
 
-Container ResizeObserver handles hidden/zero size. Compact embeds retain visualization, selection, camera controls and an expanded explorer action. Node radii are clamped; missing metrics use a separate unknown size. `loadedDegree` means unique incident edges, incoming and outgoing, across all edge kinds **within the loaded graph**, never semantic importance.
+The store treats returned graphs as replacement snapshots. If your API returns incremental pages, merge and validate those pages in the host before supplying a graph. Change `revision` for each new snapshot and `scopeKey` whenever the authorization context changes, including an account/site/role boundary.
 
-## Host security boundary
+`AuthorizedNodeDetails` has `scopeKey`, `graphRevision`, `nodeId`, primitive labeled `fields`, optional `authorizedText`, and optional evidence pointers. Text is escaped; the package does not render raw HTML or download remote assets. Authorization/scope errors clear graph data and pending work rather than trying another source.
 
-Pass only an already-authorized, allowlisted `BrainGraph`. Labels, counts, hashes, refs, grants, edges and timestamps may themselves be sensitive. UI filtering is not authorization. Graphs have an opaque `scopeKey`; source namespaces and resource keys establish identity independently of label, hash or version. `snapshotId` creates explicit history identities. `composeGraphs` requires one common host-authorized scope and distinct namespaced IDs.
+## Forge, AI context, and RAG interfaces
 
-`BrainDataSource` is optional: `loadGraph({scopeKey,cursor,signal})`, `loadDetails({scopeKey,nodeId,graphRevision,signal})`, and optional `subscribe({scopeKey,onRevision}) => unsubscribe`. Trigger `store.loadGraph(...)` from a host data layer or event handler. Live subscriptions supply monotonic sequence numbers. The store checks generations, scope, revision and node identity in addition to AbortSignal.
+Use the package as a presentation layer for context Packs, page inventories, Skills, retrieved documents, or explicit agent dependencies. It does not retrieve documents, generate embeddings, execute agents, or infer an LLM's reasoning.
 
-`AuthorizedNodeDetails` contains scope/revision/node identity, primitive labeled fields, optional explicitly authorized text and safe evidence pointers. Text is escaped; there is no HTML/Markdown/remote-image renderer. Use `safeHref` only for host-authorized HTTP(S) links. Forge refs are identifiers, not fetchable URLs.
+The optional Forge adapter separates:
 
-A host may throw `BrainDataError('authorization' | 'scope' | 'unavailable')`. Authorization/scope failures clear data, details, observations, selection, queries and pending work, with no alternate-source retry. Generic detail-loading failures expose a bounded unavailable state without raw error content.
+- `normalizeForgeCatalog`: summaries and allowlisted host projections.
+- `normalizeForgeResolveResponse`: public resolved refs/pages and receipt-level fields.
+- `normalizeForgeGenerationReceipt`: the narrower public generation receipt, without inventing per-source inclusion/redaction.
+- `normalizeForgeInternalReceipt`: richer evidence explicitly supplied by a trusted host, not a new public Forge API.
 
-## Composition and observations
+Null token counts remain unknown. A PHI flag does not establish redaction. Historical version mismatches remain unmatched. Receipts do not prove an ordered traversal or per-stage timing; the demo's illustrative pipeline is labeled accordingly.
 
-The tray is intentionally local, in-memory UI state. Reordering changes display order only. `onPreview(refs)` is a host callback; absent callbacks are visibly unsupported, never fake successes. The demo provides a deterministic synthetic callback and marks its results **Simulated**. The library never calls Forge or an LLM.
+## Accessibility, fullscreen, and limitations
 
-Three separate Forge converters:
+The explorer offers search, keyboard-operated controls, semantic entity lists, relationship navigation, reduced-motion support, and light/dark themes. Native fullscreen is attempted only after activation; unsupported environments receive a clearly labeled expanded overlay with focus restoration.
 
-- `normalizeForgeResolveResponse(response, context)`: top-level resolved refs/pages and drops. Compiled prompts are never copied. Missing per-section redaction and tokens stay null.
-- `normalizeForgeGenerationReceipt(context_receipt, context)`: aggregate accounting, hashes, optional parameter digest, timestamp, and drops only. Requested refs are host-supplied, not proof of inclusion.
-- `normalizeForgeInternalReceipt(receipt, context)`: an **explicit host projection**, not a public API payload. Kept and dropped sections map independently by version and page identity; only explicit internal fields establish redaction/inclusion.
+The 3D renderer uses instanced nodes and batched edges. Large loaded graphs should use collapsed regions and focused neighborhoods; there is no unlimited-scale or all-edges-visible promise. Spatial proximity is a layout, not semantic similarity. Automated accessibility tests are useful regression checks, not certification.
 
-`HostPackProjection`/`HostSkillProjection` are documented host projections, **not invented public wire DTOs**. The quoted `TokenBudget` representation is not known, so it stays opaque and the host may separately project `targetTokens`. Pack summaries alone never create pages or references. Activation refs are declarations, not observed traversal. PHI-marked is not redacted. Unknown custom kinds and redactor engines remain intact.
-
-`matchObservation` rejects wrong scopes and unknown/mismatched versions or hashes. It can match a historical snapshot only when explicitly supplied as that version. Aggregate token null stays unknown; deferred accounting is displayed. A failure carries no successful partial result. The illustrative pipeline is manually stepped and never claims chronological execution or timing.
-
-## Rendering behavior and limits
-
-WebGL uses instanced node geometries, batched edge lines, focused directed arrowheads, bounded projected labels and an original procedural bilateral envelope. No downloaded model, font, texture, telemetry SDK or perpetual animation. Auto-rotate starts off and any interaction pauses it. Rendering rests on demand. DPR is bounded; sustained slow-frame windows degrade quality and eventually offer a 2D downgrade with explicit retry. Hidden/unmounted instances stop work and clean up buffers, observers, controls and pending requests.
-
-The SVG tier has deterministic pan/pinch/wheel zoom, directional edges, selection and the same inspector. The list tier paginates canonical entities (60/page) rather than dropping them. Rendering only focused edges on large projections is disclosed. At 5,000 nodes the demo starts aggregated by region; expanding every group is possible but no unlimited-scale guarantee is made.
-
-Native fullscreen is attempted only on activation. Rejection/unsupported environments get an explicitly labeled **expanded overlay**. Exit restores scroll and focus, and the canvas stays mounted so camera state survives. Camera and list selection work with reduced motion and keyboard navigation.
+Authorization belongs to the host. Filtering or hiding a node in the browser does not secure it, and even metadata can be sensitive. Do not send unauthorized labels, counts, body text, credentials, or compiled prompts to the viewer.
 
 ## Development and release
 
-From the repository: `pnpm install`, `pnpm dev`, `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm test:browser`, `pnpm build`, `pnpm verify:consumer`. The demo route is `/`; v0 serves it automatically. `examples/vite-react` installs the packed tarball; `examples/next-consumer` shows the client/server boundary. See repository `docs/verification.md` for checks actually performed, and `docs/decisions.md` for design choices and revisit triggers.
+```bash
+pnpm install --frozen-lockfile
+pnpm build:package
+pnpm dev
 
-No npm publish, production deployment, real Forge calls, new authorization policies, public repository creation or production environment changes are included. License is deliberately **UNLICENSED pending operator review**; MIT is recommended, not asserted approved. Confirm namespace ownership, package availability, public repository destination and license/assets before any public release.
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm exec playwright install chromium
+pnpm verify:consumer
+pnpm build
+# With pnpm start running in another terminal:
+pnpm test:browser
+```
+
+The **repository root is a private demo workspace**. Only `packages/brain` is published:
+
+```bash
+pnpm --filter @encapsa-dev/brain pack
+# Maintainer only, after review and merge:
+pnpm --filter @encapsa-dev/brain publish --access public
+```
+
+Prepack builds the library and copies the canonical README, CHANGELOG, and existing BSD license into the package. See [CONTRIBUTING](https://github.com/encapsa-ai/brain/blob/main/CONTRIBUTING.md), [DEVELOPMENT](https://github.com/encapsa-ai/brain/blob/main/DEVELOPMENT.md), and [verification notes](https://github.com/encapsa-ai/brain/blob/main/docs/verification.md).
+
+## License and community
+
+BSD-3-Clause, copyright Encapsa, Inc. The existing [LICENSE](https://github.com/encapsa-ai/brain/blob/main/LICENSE) is authoritative.
+
+Have a reproducible bug, integration example, or accessibility improvement? [Open an issue](https://github.com/encapsa-ai/brain/issues) with a minimal synthetic graph. Explore [Encapsa AI](https://encapsa.ai) to learn about the team building the library.

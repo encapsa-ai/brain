@@ -14,7 +14,9 @@ These are new decisions for this library, not amendments to Forge's governance r
 | Deterministic bounded layouts before force simulation | Stable seeded IDs, preserved prior positions, and bounded work are predictable for embeds and dynamic graphs. | Measured connection clarity or scale problems that justify a bounded worker-based plugin. |
 | Separate resource and snapshot identities | Identical labels/hashes are not identity. Receipt matching requires actual version/page/hash evidence. | An approved version-history projection needing explicit multi-snapshot UI. |
 | Synthetic in-memory demo only | No persistence, telemetry, credentials, services or production API access is needed or permitted. Local fixture mutations are labeled. | Explicit authorization for a real host integration and opt-in tests. |
-| License review remains an operator gate | The scope recommends MIT but does not authorize a copyright holder or publication. Package remains UNLICENSED pending review. | Operator approval of final license, assets, namespace and public repository. |
+| BSD-3-Clause follows the existing repository LICENSE | The repository owner selected BSD-3-Clause; package metadata and tarball contents must agree rather than retain the scaffold's UNLICENSED placeholder. | An explicit maintainer-approved license change. |
+| Preview navigation is host-owned | A sidebar preview has one Expand action; a host can open a tab without fullscreen or duplicated navigation. | A real consumer requiring a different explicit action contract. |
+| Publish only the nested library | 0.1.0 accidentally published the demo workspace; a private root, prepublish guard, and tarball consumer matrix protect the release boundary. | A deliberate repository restructuring with equivalent release tests. |
 
 ## Proposed later Forge host boundary
 
