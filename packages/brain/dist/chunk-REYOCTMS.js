@@ -695,9 +695,9 @@ function BrainCopyField({ value, label = "Source field" }) {
     ),
     open && /* @__PURE__ */ jsxs5(FieldPopover, { anchor, role: "tooltip", id, onClose: close, onEnter: show, onLeave: hide, children: [
       /* @__PURE__ */ jsx6("span", { children: value }),
-      /* @__PURE__ */ jsx6("small", { children: "Click the field to copy" })
+      /* @__PURE__ */ jsx6("small", { children: feedback || "Click the field to copy" })
     ] }),
-    /* @__PURE__ */ jsx6("span", { className: "brain-copy-feedback", role: "status", children: feedback })
+    /* @__PURE__ */ jsx6("span", { className: open ? "brain-sr-only" : "brain-copy-feedback", role: "status", children: feedback })
   ] });
 }
 

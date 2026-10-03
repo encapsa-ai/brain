@@ -25,7 +25,7 @@ test('shared inspector discloses and copies the full source field without techni
   await expect(page.getByRole('tooltip')).toBeVisible()
   const value = await field.textContent()
   await field.click()
-  await expect(page.getByText('Copied', { exact: true })).toBeVisible()
+  await expect(page.getByRole('tooltip').getByText('Copied', { exact: true })).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(value)
   await page.keyboard.press('Escape')
   await expect(page.getByRole('tooltip')).toHaveCount(0)

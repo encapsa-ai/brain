@@ -81,13 +81,13 @@ it('copies a full source field and exposes it on keyboard focus', async () => {
   expect(screen.getByRole('tooltip').textContent).toContain(text)
   fireEvent.click(button)
   await waitFor(() => expect(writeText).toHaveBeenCalledWith(text))
-  expect(screen.getByText('Copied')).toBeTruthy()
+  expect(screen.getByRole('status').textContent).toBe('Copied')
 })
 it('does not report a successful copy when clipboard access is denied', async () => {
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: vi.fn().mockRejectedValue(new Error('denied')) } })
   render(<BrainCopyField value="private.field" />)
   fireEvent.click(screen.getByRole('button'))
-  expect(await screen.findByText(/Copy unavailable/)).toBeTruthy()
+  await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Copy unavailable/))
 })
 it('ignores a late copy result after the field changes', async () => {
   let finish!: () => void

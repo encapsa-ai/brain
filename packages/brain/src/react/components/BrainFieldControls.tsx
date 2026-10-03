@@ -108,7 +108,7 @@ export function BrainCopyField({ value, label = 'Source field' }: { value: strin
   return <div className="brain-copy-field">
     <button ref={anchor} type="button" aria-label={`Copy ${label.toLocaleLowerCase()}: ${value}`} aria-describedby={open ? id : undefined}
       onPointerEnter={show} onPointerLeave={hide} onFocus={show} onBlur={hide} onKeyDown={event => { if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); close() } }} onClick={() => { show(); void copy() }}>{value}</button>
-    {open && <FieldPopover anchor={anchor} role="tooltip" id={id} onClose={close} onEnter={show} onLeave={hide}><span>{value}</span><small>Click the field to copy</small></FieldPopover>}
-    <span className="brain-copy-feedback" role="status">{feedback}</span>
+    {open && <FieldPopover anchor={anchor} role="tooltip" id={id} onClose={close} onEnter={show} onLeave={hide}><span>{value}</span><small>{feedback || 'Click the field to copy'}</small></FieldPopover>}
+    <span className={open ? 'brain-sr-only' : 'brain-copy-feedback'} role="status">{feedback}</span>
   </div>
 }
