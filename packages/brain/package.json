@@ -1,10 +1,25 @@
 {
   "name": "@encapsa-dev/brain",
-  "version": "0.1.0",
-  "description": "Authorized knowledge projections, accessible exploration, and optional 3D brain visualization.",
+  "version": "0.1.1",
+  "description": "Composable React knowledge graph visualization with an interactive 3D brain, 2D graph, accessible explorer, and compact dashboard previews.",
+  "homepage": "https://github.com/encapsa-ai/brain#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/encapsa-ai/brain.git",
+    "directory": "packages/brain"
+  },
+  "bugs": { "url": "https://github.com/encapsa-ai/brain/issues" },
+  "author": "Encapsa AI (https://encapsa.ai)",
+  "keywords": [
+    "react", "typescript", "knowledge-graph", "graph-visualization",
+    "brain-visualization", "3d-visualization", "webgl", "threejs",
+    "react-three-fiber", "ai-context", "rag", "context-engine",
+    "dashboard", "accessible", "data-visualization", "encapsa"
+  ],
   "type": "module",
-  "license": "UNLICENSED",
-  "files": ["dist", "README.md"],
+  "license": "BSD-3-Clause",
+  "publishConfig": { "access": "public" },
+  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
   "sideEffects": ["**/*.css"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,13 +36,13 @@
     "build": "node scripts/clean.mjs && tsup && node scripts/copy-styles.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config ../../vitest.config.ts",
-    "prepack": "pnpm build"
+    "prepack": "node scripts/sync-package-docs.mjs && pnpm build"
   },
   "peerDependencies": {
-    "react": ">=19.0.0 <19.4.0",
-    "react-dom": ">=19.0.0 <19.4.0",
+    "react": "^18.3.1 || >=19.0.0 <19.4.0",
+    "react-dom": "^18.3.1 || >=19.0.0 <19.4.0",
     "three": ">=0.180.0 <0.187.0",
-    "@react-three/fiber": "^9.8.1"
+    "@react-three/fiber": "^8.18.0 || ^9.8.1"
   },
   "peerDependenciesMeta": {
     "three": { "optional": true },

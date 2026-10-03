@@ -34,10 +34,10 @@ function boundsFor(positions) {
   return { min, max };
 }
 function brainLayout(input) {
-  const positions = {};
+  const positions = /* @__PURE__ */ Object.create(null);
   for (const node of input.graph.nodes) {
     if (input.signal?.aborted) throw new Error("Layout cancelled");
-    const prior = input.previous?.[node.id];
+    const prior = input.previous && Object.hasOwn(input.previous, node.id) ? input.previous[node.id] : void 0;
     if (prior && prior.every(Number.isFinite)) {
       positions[node.id] = input.dimensions === 2 ? [prior[0], prior[1], 0] : prior;
       continue;
@@ -58,10 +58,10 @@ function brainLayout(input) {
 
 // src/layout/cluster-layout.ts
 function clusterLayout(input) {
-  const positions = {};
+  const positions = /* @__PURE__ */ Object.create(null);
   for (const node of input.graph.nodes) {
     if (input.signal?.aborted) throw new Error("Layout cancelled");
-    if (input.previous?.[node.id]) {
+    if (input.previous && Object.hasOwn(input.previous, node.id)) {
       const p = input.previous[node.id];
       positions[node.id] = [p[0], p[1], input.dimensions === 2 ? 0 : p[2]];
       continue;

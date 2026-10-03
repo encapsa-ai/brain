@@ -13,7 +13,7 @@ import {
   useBrain,
   useBrainLayout,
   useReducedMotion
-} from "../chunk-CEQNBTLN.js";
+} from "../chunk-MXCBS66O.js";
 
 // src/renderers/webgl/index.tsx
 import { useEffect as useEffect4, useMemo as useMemo3, useRef as useRef3, useState } from "react";
@@ -214,7 +214,7 @@ import { useEffect as useEffect3, useRef as useRef2 } from "react";
 import { useFrame as useFrame2, useThree } from "@react-three/fiber";
 import { Spherical, Vector3 as Vector32, PerspectiveCamera } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-function CameraRig({ layout, active, onReady, onFailure }) {
+function CameraRig({ layout, active, onReady, onFailure, interactive = true }) {
   const { camera: bus, projection, onDiagnostic } = useBrain(), reduced = useReducedMotion();
   const { camera, gl, invalidate, size, setDpr } = useThree();
   const controls = useRef2(null), transition = useRef2(null);
@@ -277,15 +277,15 @@ function CameraRig({ layout, active, onReady, onFailure }) {
   }, [bus, camera, gl, invalidate, reduced]);
   useEffect3(() => {
     if (controls.current) {
-      controls.current.enabled = active;
-      controls.current.autoRotate = active && bus.autoRotate;
+      controls.current.enabled = active && interactive;
+      controls.current.autoRotate = active && interactive && bus.autoRotate;
     }
     if (!active) {
       transition.current = null;
       frameMonitor.current(0, false);
       bus.pause();
     } else invalidate();
-  }, [active, bus, invalidate]);
+  }, [active, interactive, bus, invalidate]);
   useEffect3(() => bus.onCommand((command) => {
     const orbit = controls.current;
     if (!orbit || !active) return;
@@ -363,7 +363,7 @@ function LabelProjection({ labels, elements, layout, width, height }) {
   });
   return null;
 }
-function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderExtra }) {
+function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderExtra, interactive = true, showLabels = true }) {
   const { projection, selectedNodeId, selectedEdgeId, index, select, view, nodeStyle } = useBrain(), layout = useBrainLayout(3);
   const [hover, setHover] = useState(null), root = useRef3(null);
   const labelsRef = useRef3(/* @__PURE__ */ new Map()), moved = useRef3(false), pointerStart = useRef3(null);
@@ -378,6 +378,7 @@ function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderE
     return () => observer.disconnect();
   }, []);
   const labels = useMemo3(() => {
+    if (!showLabels) return [];
     const edge = projection.edges.find((item) => item.id === selectedEdgeId || item.originalEdgeIds?.includes(selectedEdgeId ?? ""));
     const neighbors = selectedNodeId ? neighborhood(index, selectedNodeId, 1) : null;
     const priorities = [...projection.nodes].sort((a, b) => {
@@ -385,7 +386,7 @@ function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderE
       return score(a) - score(b);
     });
     return priorities.filter((node) => ["pack", "skill", "aggregate"].includes(node.kind) || node.id === selectedNodeId || node.id === hover || node.id === edge?.source || node.id === edge?.target || projection.nodes.length < 40 && node.kind !== "page").slice(0, 16);
-  }, [projection, selectedNodeId, selectedEdgeId, index, hover]);
+  }, [projection, selectedNodeId, selectedEdgeId, index, hover, showLabels]);
   const hovered = projection.nodes.find((node) => node.id === hover);
   return /* @__PURE__ */ jsxs3("div", { className: "brain-webgl", ref: root, "data-renderer": "webgl", onPointerDownCapture: (event) => {
     pointerStart.current = [event.clientX, event.clientY];
@@ -398,7 +399,7 @@ function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderE
     /* @__PURE__ */ jsxs3(Canvas, { frameloop: active ? "demand" : "never", dpr: [1, view.quality === "high" ? 1.5 : 1], camera: { position: [0, 3.2, 10], fov: 36, near: 0.05, far: 80 }, gl: { antialias: view.quality === "high", alpha: true, powerPreference: "high-performance" }, onPointerMissed: () => {
       if (!moved.current) select(null);
     }, "aria-label": "3D knowledge brain. Equivalent entities are available in the accessible list.", children: [
-      /* @__PURE__ */ jsx3(CameraRig, { layout, active, onReady, onFailure }),
+      /* @__PURE__ */ jsx3(CameraRig, { layout, active, interactive, onReady, onFailure }),
       view.layout === "brain" && /* @__PURE__ */ jsx3(BrainEnvelope, { quality: view.quality, color: envelopeColor }),
       /* @__PURE__ */ jsx3(GraphEdges, { layout }),
       /* @__PURE__ */ jsx3(GraphNodes, { layout, moved, onHover: setHover }),

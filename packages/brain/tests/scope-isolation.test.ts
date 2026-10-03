@@ -5,6 +5,24 @@ const graph: BrainGraph = { schemaVersion: '1', scopeKey: 'a', revision: 'r1', c
 const other: BrainGraph = { ...graph, scopeKey: 'b', revision: 'r2', nodes: [{ ...graph.nodes[0], id: 'b:node', label: 'Authorized B' }] }
 const flush = () => new Promise(resolve => setTimeout(resolve, 0))
 describe('security context boundaries', () => {
+  it('clears ready details even if the host reuses a revision during a replacement', async () => {
+    const store = createBrainStore(graph, { onRequestDetails: async input => ({ ...input, fields: [], authorizedText: 'previous detail text' }) })
+    store.select('a:node')
+    await flush()
+    expect(store.getSnapshot().details.status).toBe('ready')
+    store.replaceGraph({ ...graph, nodes: [] })
+    expect(store.getSnapshot().details.status).toBe('idle')
+    expect(JSON.stringify(store.getSnapshot())).not.toContain('previous detail text')
+  })
+  it('does not apply an old subscription after dispose and React StrictMode resume', async () => {
+    let emit!: (value: BrainGraph, sequence: number) => void
+    const store = createBrainStore(graph)
+    await store.loadGraph({ loadGraph: async () => graph, subscribe(input) { emit = input.onRevision; return () => {} } }, 'a')
+    store.dispose()
+    store.resume()
+    emit({ ...graph, revision: 'stale' }, 1)
+    expect(store.getSnapshot().graph.revision).toBe('r1')
+  })
   it('discards late details even when the host ignores abort', async () => { let finish!: (value: AuthorizedNodeDetails) => void; const store = createBrainStore(graph, { onRequestDetails: () => new Promise(resolve => { finish = resolve }) }); store.select('a:node'); store.addToTray('a:node'); store.setFilters({ query: 'Authorized A', kinds: ['document'], neighborhood: 1, groupId: null }); store.replaceGraph(other); finish({ scopeKey: 'a', graphRevision: 'r1', nodeId: 'a:node', fields: [{ label: 'Secret old-scope metadata', value: 'not allowed now' }] }); await flush(); expect(store.getSnapshot().selectedNodeId).toBeNull(); expect(store.getSnapshot().tray).toEqual([]); expect(store.getSnapshot().filters.query).toBe(''); expect(store.getSnapshot().details.status).toBe('idle'); expect(JSON.stringify(store.getSnapshot())).not.toContain('Secret old-scope'); store.dispose() })
   it('drops details after selection navigation and revision changes', async () => { let finish!: (value: AuthorizedNodeDetails) => void; const store = createBrainStore(graph, { onRequestDetails: () => new Promise(resolve => { finish = resolve }) }); store.select('a:node'); store.replaceGraph({ ...graph, revision: 'r2' }); finish({ scopeKey: 'a', graphRevision: 'r1', nodeId: 'a:node', fields: [{ label: 'Stale', value: true }] }); await flush(); expect(store.getSnapshot().details.status).toBe('idle') })
   it('clears loaded graph on an explicit authorization failure', async () => { const store = createBrainStore(graph, { onRequestDetails: async () => { throw new BrainDataError('authorization') } }); store.select('a:node'); await flush(); expect(store.getSnapshot().dataStatus).toBe('unavailable'); expect(store.getSnapshot().graph.nodes).toEqual([]); expect(store.getSnapshot().selectedNodeId).toBeNull() })

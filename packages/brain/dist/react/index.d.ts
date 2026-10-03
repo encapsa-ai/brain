@@ -1,4 +1,4 @@
-import { V as ViewportRendererProps } from '../renderer-types-D_zZdd87.js';
+import { V as ViewportRendererProps } from '../renderer-types-jvhXy3Xl.js';
 import * as react_jsx_runtime from 'react/jsx-runtime';
 import * as react from 'react';
 import { ReactNode, ComponentType, CSSProperties, Ref, RefObject } from 'react';
@@ -440,15 +440,18 @@ interface BrainViewportProps {
     emptySlot?: ReactNode;
     errorSlot?: ReactNode;
     unsupportedSlot?: ReactNode;
+    interactive?: boolean;
+    showLabels?: boolean;
 }
-declare function BrainViewport({ renderer, layout, forceWebGLFailure, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot }: BrainViewportProps): react_jsx_runtime.JSX.Element;
+declare function BrainViewport({ renderer, layout, forceWebGLFailure, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot, interactive, showLabels }: BrainViewportProps): react_jsx_runtime.JSX.Element;
 
 interface BrainInspectorProps {
     renderNodeDetails?: (node: BrainNode) => ReactNode;
     renderNodeActions?: (node: BrainNode) => ReactNode;
     onClose?: () => void;
+    showContextActions?: boolean;
 }
-declare function BrainInspector({ renderNodeDetails, renderNodeActions, onClose }: BrainInspectorProps): react_jsx_runtime.JSX.Element | null;
+declare function BrainInspector({ renderNodeDetails, renderNodeActions, onClose, showContextActions }: BrainInspectorProps): react_jsx_runtime.JSX.Element | null;
 
 interface BrainContextTrayProps {
     onPreview?: (refs: readonly string[]) => void | Promise<void>;
@@ -475,11 +478,31 @@ interface BrainExplorerShellProps extends BrainViewportProps, BrainInspectorProp
     receiptControls?: ReactNode;
     controllerRef?: Ref<BrainController>;
     defaultNavigatorOpen?: boolean;
+    /** Fill the host panel; do not collapse to a miniature when used in a tab. */
+    variant?: 'standalone' | 'embedded';
+    showContextTray?: boolean;
 }
 interface BrainExplorerProps extends Omit<BrainProviderProps, 'children'>, BrainExplorerShellProps {
 }
 declare const BrainExplorer: react.ForwardRefExoticComponent<BrainExplorerProps & react.RefAttributes<BrainController>>;
 declare function BrainExplorerShell(props: BrainExplorerShellProps): react_jsx_runtime.JSX.Element;
+
+interface BrainPreviewProps extends Omit<BrainProviderProps, 'children'> {
+    /** The host owns expansion: select a tab, open a panel, or navigate. */
+    onExpand: () => void;
+    expandLabel?: string;
+    label?: string;
+    className?: string;
+    style?: CSSProperties;
+    theme?: 'dark' | 'light';
+    renderer?: Exclude<RendererKind, 'list'>;
+    layout?: LayoutKind;
+}
+/**
+ * A read-only overview with exactly one action. It does not request fullscreen
+ * or take ownership of host navigation. SVG is the inexpensive default.
+ */
+declare function BrainPreview({ onExpand, expandLabel, label, className, style, theme, renderer, layout, ...providerProps }: BrainPreviewProps): react_jsx_runtime.JSX.Element;
 
 declare function useExplorerFullscreen(ref: RefObject<HTMLElement | null>): {
     mode: "none" | "native" | "overlay";
@@ -500,6 +523,6 @@ declare function BrainAccessibleList({ className, showSearch }: {
     showSearch?: boolean;
 }): react_jsx_runtime.JSX.Element;
 
-declare function BrainSvgRenderer({ width, height, active }: ViewportRendererProps): react_jsx_runtime.JSX.Element;
+declare function BrainSvgRenderer({ width, height, active, interactive, showLabels }: ViewportRendererProps): react_jsx_runtime.JSX.Element;
 
-export { type AuthorizedNodeDetails as A, type BrainController as B, BrainAccessibleList, BrainContextTray, type BrainContextTrayProps, BrainExplorer, type BrainExplorerProps, BrainExplorerShell, type BrainExplorerShellProps, BrainInspector, type BrainInspectorProps, BrainLegend, BrainProvider, type BrainProviderProps, BrainResolutionPanel, BrainSvgRenderer, BrainTierNavigator, BrainToolbar, BrainViewport, type BrainViewportProps, type CameraCommand as C, type DetailsLoader as D, type EdgeId as E, type ExplorerMode, type GraphIndex as G, type JsonValue as J, type KindStyle as K, type LayoutAdapter as L, type NodeId as N, type ObservationAssociation as O, type Position3 as P, type RendererKind as R, type SectionObservation as S, type TierDefinition as T, type ViewState as V, ViewportRendererProps, type WebGLRendererLoader, type BrainDataSource as a, type BrainEdge as b, type BrainFilters as c, type BrainGraph as d, type BrainHierarchy as e, type BrainNode as f, type BrainPreset as g, type CameraState as h, type Diagnostic as i, type DiagnosticEvent as j, type DiagnosticListener as k, type EdgeKindStyle as l, type EvidenceOrigin as m, type GraphProjection as n, type LayoutInput as o, type LayoutKind as p, type LayoutResult as q, type NodeShape as r, type NodeSizeOptions as s, type ObservationMatch as t, type PresentationEdge as u, useBrain, useBrainContext, useBrainLayout, useExplorerFullscreen, useReducedMotion, type PresentationGroup as v, type PresentationMembership as w, type PresentationNode as x, type ResolutionObservation as y };
+export { type AuthorizedNodeDetails as A, type BrainController as B, BrainAccessibleList, BrainContextTray, type BrainContextTrayProps, BrainExplorer, type BrainExplorerProps, BrainExplorerShell, type BrainExplorerShellProps, BrainInspector, type BrainInspectorProps, BrainLegend, BrainPreview, type BrainPreviewProps, BrainProvider, type BrainProviderProps, BrainResolutionPanel, BrainSvgRenderer, BrainTierNavigator, BrainToolbar, BrainViewport, type BrainViewportProps, type CameraCommand as C, type DetailsLoader as D, type EdgeId as E, type ExplorerMode, type GraphIndex as G, type JsonValue as J, type KindStyle as K, type LayoutAdapter as L, type NodeId as N, type ObservationAssociation as O, type Position3 as P, type RendererKind as R, type SectionObservation as S, type TierDefinition as T, type ViewState as V, ViewportRendererProps, type WebGLRendererLoader, type BrainDataSource as a, type BrainEdge as b, type BrainFilters as c, type BrainGraph as d, type BrainHierarchy as e, type BrainNode as f, type BrainPreset as g, type CameraState as h, type Diagnostic as i, type DiagnosticEvent as j, type DiagnosticListener as k, type EdgeKindStyle as l, type EvidenceOrigin as m, type GraphProjection as n, type LayoutInput as o, type LayoutKind as p, type LayoutResult as q, type NodeShape as r, type NodeSizeOptions as s, type ObservationMatch as t, type PresentationEdge as u, useBrain, useBrainContext, useBrainLayout, useExplorerFullscreen, useReducedMotion, type PresentationGroup as v, type PresentationMembership as w, type PresentationNode as x, type ResolutionObservation as y };

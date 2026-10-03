@@ -7,20 +7,21 @@ import {
   BrainExplorerShell,
   BrainInspector,
   BrainLegend,
+  BrainPreview,
   BrainResolutionPanel,
   BrainSvgRenderer,
   BrainTierNavigator,
   BrainToolbar,
   BrainViewport,
   useExplorerFullscreen
-} from "./chunk-2HU2SLAM.js";
+} from "./chunk-SYGCU6XI.js";
 import {
   BrainProvider,
   useBrain,
   useBrainContext,
   useBrainLayout,
   useReducedMotion
-} from "./chunk-CEQNBTLN.js";
+} from "./chunk-MXCBS66O.js";
 export {
   BrainAccessibleList,
   BrainContextTray,
@@ -28,6 +29,7 @@ export {
   BrainExplorerShell,
   BrainInspector,
   BrainLegend,
+  BrainPreview,
   BrainProvider,
   BrainResolutionPanel,
   BrainSvgRenderer,

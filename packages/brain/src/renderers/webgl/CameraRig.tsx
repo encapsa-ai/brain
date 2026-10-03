@@ -7,7 +7,7 @@ import { useBrain, useReducedMotion } from '../../react/BrainProvider'
 import { clamp, createFrameMonitor, homeCamera } from '../../core/camera'
 import type { LayoutResult } from '../../core/types'
 import type { ViewportRendererProps } from '../../react/renderer-types'
-export function CameraRig({ layout, active, onReady, onFailure }: { layout: LayoutResult } & Pick<ViewportRendererProps, 'active' | 'onReady' | 'onFailure'>) {
+export function CameraRig({ layout, active, onReady, onFailure, interactive = true }: { layout: LayoutResult } & Pick<ViewportRendererProps, 'active' | 'onReady' | 'onFailure' | 'interactive'>) {
   const { camera: bus, projection, onDiagnostic } = useBrain(), reduced = useReducedMotion()
   const { camera, gl, invalidate, size, setDpr } = useThree()
   const controls = useRef<OrbitControls | null>(null), transition = useRef<{ position: Vector3; target: Vector3 } | null>(null)
@@ -38,10 +38,10 @@ export function CameraRig({ layout, active, onReady, onFailure }: { layout: Layo
     return () => { unsubscribe(); orbit.removeEventListener('change', changed); orbit.removeEventListener('start', started); orbit.dispose(); controls.current = null; gl.domElement.removeEventListener('webglcontextlost', contextLost) }
   }, [bus, camera, gl, invalidate, reduced])
   useEffect(() => {
-    if (controls.current) { controls.current.enabled = active; controls.current.autoRotate = active && bus.autoRotate }
+    if (controls.current) { controls.current.enabled = active && interactive; controls.current.autoRotate = active && interactive && bus.autoRotate }
     if (!active) { transition.current = null; frameMonitor.current(0, false); bus.pause() }
     else invalidate()
-  }, [active, bus, invalidate])
+  }, [active, interactive, bus, invalidate])
   useEffect(() => bus.onCommand(command => {
     const orbit = controls.current
     if (!orbit || !active) return

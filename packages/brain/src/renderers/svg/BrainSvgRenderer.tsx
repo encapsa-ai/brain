@@ -7,7 +7,7 @@ import { matchObservation } from '../../core/resolution'
 import { brainSurface } from '../../layout/brain-layout'
 import type { ViewportRendererProps } from '../../react/renderer-types'
 import type { PresentationNode } from '../../core/types'
-export function BrainSvgRenderer({ width, height, active }: ViewportRendererProps) {
+export function BrainSvgRenderer({ width, height, active, interactive = true, showLabels = true }: ViewportRendererProps) {
   const brain = useBrain(), layout = useBrainLayout(2), markerId = useId().replaceAll(':', '')
   const { camera, projection, selectedNodeId, selectedEdgeId, index, select, selectEdge, nodeStyle, edgeStyle, nodeSize, view, observation, graph } = brain
   const svgRef = useRef<SVGSVGElement>(null), groupRef = useRef<SVGGElement>(null)
@@ -24,7 +24,7 @@ export function BrainSvgRenderer({ width, height, active }: ViewportRendererProp
   }
   useEffect(() => { sync() })
   useEffect(() => {
-    if (!active) return
+    if (!active || !interactive) return
     return camera.onCommand(command => {
       const state = camera.state
       if (command.type === 'reset') camera.state = { ...homeCamera }
@@ -34,24 +34,24 @@ export function BrainSvgRenderer({ width, height, active }: ViewportRendererProp
       if (command.type === 'focus') { const positions = command.nodeIds.map(id => layout.positions[projection.canonicalToVisible.get(id) ?? id]).filter(Boolean); if (positions.length) { const x = positions.reduce((sum, p) => sum + p[0], 0) / positions.length, y = positions.reduce((sum, p) => sum + p[1], 0) / positions.length; camera.state = { ...state, pan: [-x * scale * state.zoom * 0.35, y * scale * state.zoom * 0.35] } } }
       sync()
     })
-  }, [active, camera, layout, width, height, projection, scale])
+  }, [active, interactive, camera, layout, width, height, projection, scale])
   useEffect(() => {
     const svg = svgRef.current
-    if (!svg || !active) return
+    if (!svg || !active || !interactive) return
     const wheel = (event: WheelEvent) => { event.preventDefault(); camera.pause(); const factor = Math.exp(-event.deltaY * 0.001); camera.state = { ...camera.state, zoom: clamp(camera.state.zoom * factor, 0.25, 5) }; sync() }
     svg.addEventListener('wheel', wheel, { passive: false })
     return () => svg.removeEventListener('wheel', wheel)
-  }, [active, width, height, camera])
+  }, [active, interactive, width, height, camera])
   useEffect(() => {
-    if (!active) return
+    if (!active || !interactive) return
     let frame = 0, previous = 0
     const run = (time: number) => { if (camera.autoRotate && !document.hidden) { const delta = previous ? Math.min(0.05, (time - previous) / 1000) : 0; camera.state = { ...camera.state, yaw: camera.state.yaw + delta * 0.15 }; sync(); previous = time; frame = requestAnimationFrame(run) } }
     const wake = () => { cancelAnimationFrame(frame); previous = 0; if (camera.autoRotate) frame = requestAnimationFrame(run) }
     const stop = camera.subscribe(wake); wake()
     return () => { stop(); cancelAnimationFrame(frame) }
-  }, [active, camera, width, height])
+  }, [active, interactive, camera, width, height])
   const selectedEdge = projection.edges.find(edge => edge.id === selectedEdgeId || edge.originalEdgeIds?.includes(selectedEdgeId ?? ''))
-  const labeled = projection.nodes.filter(node => node.kind === 'pack' || node.kind === 'skill' || node.kind === 'aggregate' || node.id === selectedNodeId || node.id === hover || selectedEdge?.source === node.id || selectedEdge?.target === node.id).slice(0, 22)
+  const labeled = showLabels ? projection.nodes.filter(node => node.kind === 'pack' || node.kind === 'skill' || node.kind === 'aggregate' || node.id === selectedNodeId || node.id === hover || selectedEdge?.source === node.id || selectedEdge?.target === node.id).slice(0, 22) : []
   const edges = projection.edges.filter(edge => projection.nodes.length <= 120 || edge.source === selectedNodeId || edge.target === selectedNodeId || edge.id === selectedEdgeId).slice(0, 600)
   function glyph(node: PresentationNode, r: number) {
     const style = nodeStyle(node)

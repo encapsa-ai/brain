@@ -15,7 +15,7 @@ import {
   useBrain,
   useBrainLayout,
   useReducedMotion
-} from "./chunk-CEQNBTLN.js";
+} from "./chunk-MXCBS66O.js";
 
 // src/react/BrainExplorer.tsx
 import { forwardRef, useEffect as useEffect4, useId as useId5, useImperativeHandle, useRef as useRef4, useState as useState8 } from "react";
@@ -26,7 +26,7 @@ import { Component, Suspense, lazy, useEffect as useEffect2, useMemo as useMemo2
 // src/renderers/svg/BrainSvgRenderer.tsx
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { jsx, jsxs } from "react/jsx-runtime";
-function BrainSvgRenderer({ width, height, active }) {
+function BrainSvgRenderer({ width, height, active, interactive = true, showLabels = true }) {
   const brain = useBrain(), layout = useBrainLayout(2), markerId = useId().replaceAll(":", "");
   const { camera, projection, selectedNodeId, selectedEdgeId, index, select, selectEdge, nodeStyle, edgeStyle, nodeSize, view, observation, graph } = brain;
   const svgRef = useRef(null), groupRef = useRef(null);
@@ -48,7 +48,7 @@ function BrainSvgRenderer({ width, height, active }) {
     sync();
   });
   useEffect(() => {
-    if (!active) return;
+    if (!active || !interactive) return;
     return camera.onCommand((command) => {
       const state = camera.state;
       if (command.type === "reset") camera.state = { ...homeCamera };
@@ -67,10 +67,10 @@ function BrainSvgRenderer({ width, height, active }) {
       }
       sync();
     });
-  }, [active, camera, layout, width, height, projection, scale]);
+  }, [active, interactive, camera, layout, width, height, projection, scale]);
   useEffect(() => {
     const svg = svgRef.current;
-    if (!svg || !active) return;
+    if (!svg || !active || !interactive) return;
     const wheel = (event) => {
       event.preventDefault();
       camera.pause();
@@ -80,9 +80,9 @@ function BrainSvgRenderer({ width, height, active }) {
     };
     svg.addEventListener("wheel", wheel, { passive: false });
     return () => svg.removeEventListener("wheel", wheel);
-  }, [active, width, height, camera]);
+  }, [active, interactive, width, height, camera]);
   useEffect(() => {
-    if (!active) return;
+    if (!active || !interactive) return;
     let frame = 0, previous = 0;
     const run = (time) => {
       if (camera.autoRotate && !document.hidden) {
@@ -104,9 +104,9 @@ function BrainSvgRenderer({ width, height, active }) {
       stop();
       cancelAnimationFrame(frame);
     };
-  }, [active, camera, width, height]);
+  }, [active, interactive, camera, width, height]);
   const selectedEdge = projection.edges.find((edge) => edge.id === selectedEdgeId || edge.originalEdgeIds?.includes(selectedEdgeId ?? ""));
-  const labeled = projection.nodes.filter((node) => node.kind === "pack" || node.kind === "skill" || node.kind === "aggregate" || node.id === selectedNodeId || node.id === hover || selectedEdge?.source === node.id || selectedEdge?.target === node.id).slice(0, 22);
+  const labeled = showLabels ? projection.nodes.filter((node) => node.kind === "pack" || node.kind === "skill" || node.kind === "aggregate" || node.id === selectedNodeId || node.id === hover || selectedEdge?.source === node.id || selectedEdge?.target === node.id).slice(0, 22) : [];
   const edges = projection.edges.filter((edge) => projection.nodes.length <= 120 || edge.source === selectedNodeId || edge.target === selectedNodeId || edge.id === selectedEdgeId).slice(0, 600);
   function glyph(node, r) {
     const style = nodeStyle(node);
@@ -329,7 +329,7 @@ var RendererBoundary = class extends Component {
     return this.state.failed ? null : this.props.children;
   }
 };
-function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot }) {
+function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot, interactive = true, showLabels = true }) {
   const { view, store, projection, selectedNodeId, index, select, camera, dataStatus, onDiagnostic, loadWebGLRenderer } = useBrain();
   const ref = useRef2(null), [size, setSize] = useState3({ width: 0, height: 0 }), [visible, setVisible] = useState3(true);
   const [failure, setFailure] = useState3(null), [readyToken, setReadyToken] = useState3(null), [attempt, setAttempt] = useState3(0);
@@ -349,12 +349,18 @@ function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtr
       setSize({ width: Math.round(rect.width), height: Math.round(rect.height) });
     });
     observer.observe(element);
-    const intersection = new IntersectionObserver((entries) => setVisible(entries[0].isIntersecting && !document.hidden));
-    intersection.observe(element);
-    const visibility = () => {
-      setVisible(!document.hidden);
-      if (document.hidden) camera.pause();
+    let intersects = true;
+    const updateVisibility = () => {
+      const next = intersects && !document.hidden;
+      setVisible(next);
+      if (!next) camera.pause();
     };
+    const intersection = new IntersectionObserver((entries) => {
+      intersects = entries[0].isIntersecting;
+      updateVisibility();
+    });
+    intersection.observe(element);
+    const visibility = updateVisibility;
     document.addEventListener("visibilitychange", visibility);
     return () => {
       observer.disconnect();
@@ -384,10 +390,11 @@ function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtr
     {
       ref,
       className: "brain-viewport",
-      tabIndex: 0,
-      "aria-label": "Knowledge visualization. Arrow keys rotate. Plus and minus zoom. Escape clears selection.",
+      tabIndex: interactive ? 0 : -1,
+      "aria-label": interactive ? "Knowledge visualization. Arrow keys rotate. Plus and minus zoom. Escape clears selection." : "Read-only knowledge visualization",
       "data-active-renderer": choice === "list" ? "list" : usable3D && ready ? "webgl" : "svg",
       onKeyDown: (event) => {
+        if (!interactive) return;
         if (event.target.closest("input,textarea,select,[contenteditable=true]")) return;
         const rotations = { ArrowLeft: [-Math.PI / 12, 0], ArrowRight: [Math.PI / 12, 0], ArrowUp: [0, -Math.PI / 12], ArrowDown: [0, Math.PI / 12] };
         if (rotations[event.key]) {
@@ -419,8 +426,8 @@ function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtr
           /* @__PURE__ */ jsx4("h2", { children: "No loaded context to display" }),
           /* @__PURE__ */ jsx4("p", { children: "Adjust the filters or supply an authorized graph." })
         ] }) : choice === "list" ? /* @__PURE__ */ jsx4(BrainAccessibleList, {}) : size.width > 0 && size.height > 0 ? /* @__PURE__ */ jsxs3(Fragment, { children: [
-          (!usable3D || !ready) && /* @__PURE__ */ jsx4(BrainSvgRenderer, { ...size, active: !usable3D || !ready }),
-          usable3D && LazyWebGL && /* @__PURE__ */ jsx4("div", { className: `brain-webgl-layer ${ready ? "is-ready" : ""}`, children: /* @__PURE__ */ jsx4(RendererBoundary, { onError: () => fail("initialization"), children: /* @__PURE__ */ jsx4(Suspense, { fallback: null, children: /* @__PURE__ */ jsx4(LazyWebGL, { ...size, active: visible, onReady: () => setReadyToken(initializationToken), onFailure: fail, renderExtra: renderExtraWebGL }) }) }, attempt) }),
+          (!usable3D || !ready) && /* @__PURE__ */ jsx4(BrainSvgRenderer, { ...size, active: visible && (!usable3D || !ready), interactive, showLabels }),
+          usable3D && LazyWebGL && /* @__PURE__ */ jsx4("div", { className: `brain-webgl-layer ${ready ? "is-ready" : ""}`, children: /* @__PURE__ */ jsx4(RendererBoundary, { onError: () => fail("initialization"), children: /* @__PURE__ */ jsx4(Suspense, { fallback: null, children: /* @__PURE__ */ jsx4(LazyWebGL, { ...size, active: visible, interactive, showLabels, onReady: () => setReadyToken(initializationToken), onFailure: fail, renderExtra: renderExtraWebGL }) }) }, attempt) }),
           choice === "webgl" && !loadWebGLRenderer && /* @__PURE__ */ jsx4("div", { className: "brain-renderer-notice", role: "status", children: "3D unsupported: register the optional WebGL renderer. 2D remains available." }),
           usable3D && !ready && /* @__PURE__ */ jsx4("div", { className: "brain-renderer-notice", role: "status", children: loadingSlot ?? "Preparing 3D \xB7 2D remains available" }),
           failed && /* @__PURE__ */ jsxs3("div", { className: "brain-renderer-notice", role: "status", children: [
@@ -576,7 +583,7 @@ function BrainTierNavigator({ onClose }) {
 // src/react/components/BrainInspector.tsx
 import { useId as useId4, useState as useState4 } from "react";
 import { jsx as jsx7, jsxs as jsxs6 } from "react/jsx-runtime";
-function BrainInspector({ renderNodeDetails, renderNodeActions, onClose }) {
+function BrainInspector({ renderNodeDetails, renderNodeActions, onClose, showContextActions = true }) {
   const { selectedNodeId, index, graph, select, selectEdge, selectedEdgeId, nodeStyle, edgeStyle, details, observation, store, tray, camera } = useBrain();
   const [tab, setTab] = useState4("details"), [pathTarget, setPathTarget] = useState4(""), [pathMessage, setPathMessage] = useState4("");
   const id = useId4();
@@ -746,7 +753,7 @@ function BrainInspector({ renderNodeDetails, renderNodeActions, onClose }) {
       ] })
     ] }) }),
     /* @__PURE__ */ jsxs6("div", { className: "brain-inspector-footer", children: [
-      node.canonicalRef && /* @__PURE__ */ jsxs6("button", { className: "brain-button brain-button-primary", disabled: tray.includes(node.id), onClick: () => store.addToTray(node.id), children: [
+      showContextActions && node.canonicalRef && /* @__PURE__ */ jsxs6("button", { className: "brain-button brain-button-primary", disabled: tray.includes(node.id), onClick: () => store.addToTray(node.id), children: [
         /* @__PURE__ */ jsx7(Icon, { name: tray.includes(node.id) ? "check" : "plus" }),
         tray.includes(node.id) ? "Added to context" : "Add to context"
       ] }),
@@ -1021,7 +1028,7 @@ function BrainExplorerShell(props) {
   const fullscreen = useExplorerFullscreen(root);
   const [navigatorOpen, setNavigatorOpen] = useState8(props.defaultNavigatorOpen ?? true), [listOpen, setListOpen] = useState8(false), [mode, setMode] = useState8("inventory");
   const [size, setSize] = useState8({ width: 1400, height: 760 }), [hydrated, setHydrated] = useState8(false);
-  const compact = fullscreen.mode === "none" && (size.width < 500 || size.height < 340), narrow = size.width < 960;
+  const compact = props.variant !== "embedded" && fullscreen.mode === "none" && (size.width < 500 || size.height < 340), narrow = size.width < 960;
   const searchId = useId5(), selected = selectedNodeId ? index.nodes.get(selectedNodeId) : null;
   const currentMode = props.mode ?? mode;
   const setModeValue = (value) => {
@@ -1073,11 +1080,10 @@ function BrainExplorerShell(props) {
     "div",
     {
       ref: root,
-      className: `brain-explorer ${props.className ?? ""} ${compact ? "brain-compact" : ""} ${narrow ? "brain-narrow" : ""} ${fullscreen.mode === "overlay" ? "brain-expanded-overlay" : ""}`,
+      className: `brain-explorer ${props.variant === "embedded" ? "brain-embedded" : ""} ${props.className ?? ""} ${compact ? "brain-compact" : ""} ${narrow ? "brain-narrow" : ""} ${fullscreen.mode === "overlay" ? "brain-expanded-overlay" : ""}`,
       "data-theme": props.theme ?? "dark",
       "data-ready": hydrated,
       "data-fullscreen": fullscreen.mode,
-      "data-scope": graph.scopeKey,
       style: props.style,
       tabIndex: -1,
       role: fullscreen.mode === "overlay" ? "dialog" : "region",
@@ -1254,9 +1260,9 @@ function BrainExplorerShell(props) {
               /* @__PURE__ */ jsx11(Icon, { name: "info" }),
               "Spatial positions are a layout, not semantic similarity."
             ] }),
-            /* @__PURE__ */ jsx11(BrainContextTray, { onPreview: props.onPreview, previewLabel: props.previewLabel, simulated: props.simulated })
+            props.showContextTray !== false && /* @__PURE__ */ jsx11(BrainContextTray, { onPreview: props.onPreview, previewLabel: props.previewLabel, simulated: props.simulated })
           ] }),
-          selectedNodeId && !compact && /* @__PURE__ */ jsx11("div", { className: narrow ? "brain-inspector-mobile" : "brain-inspector-container", children: /* @__PURE__ */ jsx11(BrainInspector, { renderNodeDetails: props.renderNodeDetails, renderNodeActions: props.renderNodeActions, onClose: () => root.current?.querySelector(".brain-viewport")?.focus() }) }),
+          selectedNodeId && !compact && /* @__PURE__ */ jsx11("div", { className: narrow ? "brain-inspector-mobile" : "brain-inspector-container", children: /* @__PURE__ */ jsx11(BrainInspector, { renderNodeDetails: props.renderNodeDetails, renderNodeActions: props.renderNodeActions, showContextActions: props.showContextActions ?? props.showContextTray !== false, onClose: () => root.current?.querySelector(".brain-viewport")?.focus() }) }),
           listOpen && /* @__PURE__ */ jsxs10(Fragment3, { children: [
             /* @__PURE__ */ jsx11("button", { className: "brain-drawer-scrim", "aria-label": "Dismiss accessible node list", onClick: () => setListOpen(false) }),
             /* @__PURE__ */ jsxs10("div", { className: "brain-list-drawer", ref: drawer, role: "dialog", "aria-modal": "true", "aria-label": "Accessible node list", children: [
@@ -1295,6 +1301,59 @@ function BrainExplorerShell(props) {
   );
 }
 
+// src/react/BrainPreview.tsx
+import { useEffect as useEffect5, useRef as useRef5 } from "react";
+import { jsx as jsx12, jsxs as jsxs11 } from "react/jsx-runtime";
+function BrainPreview({
+  onExpand,
+  expandLabel = "Expand brain",
+  label = "Knowledge overview",
+  className = "",
+  style,
+  theme = "dark",
+  renderer = "svg",
+  layout = "brain",
+  ...providerProps
+}) {
+  const surface = useRef5(null);
+  useEffect5(() => {
+    if (surface.current) surface.current.inert = true;
+  }, []);
+  return /* @__PURE__ */ jsx12(
+    BrainProvider,
+    {
+      ...providerProps,
+      autoFocus: false,
+      nodeSize: providerProps.nodeSize ?? { metric: "targetTokens", scale: "sqrt", min: 1.5, max: 3.5, unknown: 1.5 },
+      defaultView: providerProps.defaultView ?? { renderer, layout, quality: "low" },
+      children: /* @__PURE__ */ jsxs11(
+        "div",
+        {
+          className: `brain-explorer brain-preview ${className}`,
+          "data-theme": theme,
+          style,
+          role: "region",
+          "aria-label": label,
+          children: [
+            /* @__PURE__ */ jsx12("div", { ref: surface, className: "brain-preview-surface", "aria-hidden": "true", children: /* @__PURE__ */ jsx12(BrainViewport, { renderer, layout, interactive: false, showLabels: false }) }),
+            /* @__PURE__ */ jsx12(
+              "button",
+              {
+                type: "button",
+                className: "brain-icon-button brain-preview-expand",
+                "aria-label": expandLabel,
+                title: expandLabel,
+                onClick: onExpand,
+                children: /* @__PURE__ */ jsx12(Icon, { name: "expand" })
+              }
+            )
+          ]
+        }
+      )
+    }
+  );
+}
+
 export {
   BrainSvgRenderer,
   BrainAccessibleList,
@@ -1307,5 +1366,6 @@ export {
   BrainResolutionPanel,
   useExplorerFullscreen,
   BrainExplorer,
-  BrainExplorerShell
+  BrainExplorerShell,
+  BrainPreview
 };

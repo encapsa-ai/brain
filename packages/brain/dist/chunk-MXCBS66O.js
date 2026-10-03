@@ -64,7 +64,7 @@ function loadedDegree(index, id) {
 }
 
 // src/react/BrainProvider.tsx
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect as useReactLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 // src/core/validation.ts
 function hasDirectedCycle(pairs) {
@@ -202,12 +202,13 @@ function createBrainStore(initialGraph, initial = {}) {
     const revisionChanged = graph.revision !== snapshot.graph.revision;
     const diagnostics2 = validateGraph(graph);
     const resetContext = scopeChanged || diagnostics2.length > 0;
-    if (resetContext || revisionChanged) invalidateDetails();
+    invalidateDetails();
     const safeGraph = diagnostics2.length ? { ...graph, nodes: [], edges: [] } : graph;
     emit({
       graph: safeGraph,
       diagnostics: diagnostics2,
       dataStatus: diagnostics2.length ? "unavailable" : "ready",
+      details: { status: "idle" },
       ...resetContext ? { selectedNodeId: null, selectedEdgeId: null, filters: defaultFilters, tray: [], expandedGroups: [], observation: null, details: { status: "idle" } } : {},
       ...revisionChanged && !resetContext ? { details: { status: "idle" }, selectedEdgeId: null, tray: snapshot.tray.filter((id) => safeGraph.nodes.some((node) => node.id === id)) } : {}
     });
@@ -335,8 +336,10 @@ function createBrainStore(initialGraph, initial = {}) {
     dispose() {
       disposed = true;
       invalidateDetails();
+      graphGeneration++;
       graphAbort?.abort();
       unsubscribe?.();
+      unsubscribe = void 0;
       listeners.clear();
     },
     resume() {
@@ -592,10 +595,10 @@ function boundsFor(positions) {
   return { min, max };
 }
 function brainLayout(input) {
-  const positions = {};
+  const positions = /* @__PURE__ */ Object.create(null);
   for (const node of input.graph.nodes) {
     if (input.signal?.aborted) throw new Error("Layout cancelled");
-    const prior = input.previous?.[node.id];
+    const prior = input.previous && Object.hasOwn(input.previous, node.id) ? input.previous[node.id] : void 0;
     if (prior && prior.every(Number.isFinite)) {
       positions[node.id] = input.dimensions === 2 ? [prior[0], prior[1], 0] : prior;
       continue;
@@ -616,10 +619,10 @@ function brainLayout(input) {
 
 // src/layout/cluster-layout.ts
 function clusterLayout(input) {
-  const positions = {};
+  const positions = /* @__PURE__ */ Object.create(null);
   for (const node of input.graph.nodes) {
     if (input.signal?.aborted) throw new Error("Layout cancelled");
-    if (input.previous?.[node.id]) {
+    if (input.previous && Object.hasOwn(input.previous, node.id)) {
       const p = input.previous[node.id];
       positions[node.id] = [p[0], p[1], input.dimensions === 2 ? 0 : p[2]];
       continue;
@@ -704,6 +707,7 @@ function createLayoutController(options = {}) {
 
 // src/react/BrainProvider.tsx
 import { jsx } from "react/jsx-runtime";
+var useLayoutEffect = typeof window === "undefined" ? useEffect : useReactLayoutEffect;
 var Context = createContext(null);
 var defaultSize = { metric: "targetTokens", scale: "sqrt", min: 4, max: 10, unknown: 3 };
 function BrainProvider(props) {
@@ -764,9 +768,10 @@ function useBrain() {
     if (canonical && context.autoFocus) context.camera.send({ type: "focus", nodeIds: [canonical] });
   };
   const selectEdge = (edge) => {
-    const target = projection.nodes.find((node) => node.id === edge.target);
+    const destination = edge.target === snapshot.selectedNodeId ? edge.source : edge.target;
+    const target = projection.nodes.find((node) => node.id === destination);
     if (target?.groupId) context.store.setExpandedGroups([...snapshot.expandedGroups, target.groupId]);
-    context.store.select(target?.canonicalId ?? (index.nodes.has(edge.target) ? edge.target : null));
+    context.store.select(target?.canonicalId ?? (index.nodes.has(destination) ? destination : null));
     context.store.setEdge(edge.id);
     context.camera.send({ type: "focus", nodeIds: [edge.source, edge.target] });
   };
@@ -829,6 +834,7 @@ function matchObservation(graph, observation) {
     if (graph.scopeKey !== observation.association.scopeKey) return unmatched("scope-mismatch");
     const parsed = parseForgeRef(section.sourceRef, observation.association.callerTenant);
     const resourceKey = section.resourceKey ?? parsed?.resourceKey;
+    if (!resourceKey) return unmatched("not-in-projection");
     const version = section.version ?? parsed?.version;
     if (!version) return unmatched("unknown-version");
     const candidates = graph.nodes.filter((node2) => node2.sourceNamespace === observation.association.sourceNamespace && node2.resourceKey === resourceKey);

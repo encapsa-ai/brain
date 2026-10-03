@@ -23,13 +23,14 @@ function LabelProjection({ labels, elements, layout, width, height }: { labels: 
   })
   return null
 }
-export function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderExtra }: ViewportRendererProps) {
+export function BrainWebGLRenderer({ width, height, active, onReady, onFailure, renderExtra, interactive = true, showLabels = true }: ViewportRendererProps) {
   const { projection, selectedNodeId, selectedEdgeId, index, select, view, nodeStyle } = useBrain(), layout = useBrainLayout(3)
   const [hover, setHover] = useState<string | null>(null), root = useRef<HTMLDivElement>(null)
   const labelsRef = useRef(new Map<string, HTMLElement>()), moved = useRef(false), pointerStart = useRef<readonly [number, number] | null>(null)
   const [envelopeColor, setEnvelopeColor] = useState('#53afa8')
   useEffect(() => { const explorer = root.current?.closest('.brain-explorer'); if (!explorer) return; const read = () => setEnvelopeColor(getComputedStyle(explorer).getPropertyValue('--brain-contour').trim() || '#53afa8'); read(); const observer = new MutationObserver(read); observer.observe(explorer, { attributes: true }); return () => observer.disconnect() }, [])
   const labels = useMemo(() => {
+    if (!showLabels) return []
     const edge = projection.edges.find(item => item.id === selectedEdgeId || item.originalEdgeIds?.includes(selectedEdgeId ?? ''))
     const neighbors = selectedNodeId ? neighborhood(index, selectedNodeId, 1) : null
     const priorities = [...projection.nodes].sort((a, b) => {
@@ -37,11 +38,11 @@ export function BrainWebGLRenderer({ width, height, active, onReady, onFailure, 
       return score(a) - score(b)
     })
     return priorities.filter(node => ['pack', 'skill', 'aggregate'].includes(node.kind) || node.id === selectedNodeId || node.id === hover || node.id === edge?.source || node.id === edge?.target || (projection.nodes.length < 40 && node.kind !== 'page')).slice(0, 16)
-  }, [projection, selectedNodeId, selectedEdgeId, index, hover])
+  }, [projection, selectedNodeId, selectedEdgeId, index, hover, showLabels])
   const hovered = projection.nodes.find(node => node.id === hover)
   return <div className="brain-webgl" ref={root} data-renderer="webgl" onPointerDownCapture={event => { pointerStart.current = [event.clientX, event.clientY]; moved.current = false }} onPointerMoveCapture={event => { if (pointerStart.current && Math.hypot(event.clientX - pointerStart.current[0], event.clientY - pointerStart.current[1]) > 5) moved.current = true }} onPointerUpCapture={() => { pointerStart.current = null }}>
     <Canvas frameloop={active ? 'demand' : 'never'} dpr={[1, view.quality === 'high' ? 1.5 : 1]} camera={{ position: [0, 3.2, 10], fov: 36, near: 0.05, far: 80 }} gl={{ antialias: view.quality === 'high', alpha: true, powerPreference: 'high-performance' }} onPointerMissed={() => { if (!moved.current) select(null) }} aria-label="3D knowledge brain. Equivalent entities are available in the accessible list.">
-      <CameraRig layout={layout} active={active} onReady={onReady} onFailure={onFailure} />
+      <CameraRig layout={layout} active={active} interactive={interactive} onReady={onReady} onFailure={onFailure} />
       {view.layout === 'brain' && <BrainEnvelope quality={view.quality} color={envelopeColor} />}
       <GraphEdges layout={layout} /><GraphNodes layout={layout} moved={moved} onHover={setHover} />
       <LabelProjection labels={labels} elements={labelsRef} layout={layout} width={width} height={height} />

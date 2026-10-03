@@ -20,8 +20,10 @@ export interface BrainViewportProps {
   emptySlot?: ReactNode
   errorSlot?: ReactNode
   unsupportedSlot?: ReactNode
+  interactive?: boolean
+  showLabels?: boolean
 }
-export function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot }: BrainViewportProps) {
+export function BrainViewport({ renderer, layout, forceWebGLFailure = false, renderExtraWebGL, loadingSlot, emptySlot, errorSlot, unsupportedSlot, interactive = true, showLabels = true }: BrainViewportProps) {
   const { view, store, projection, selectedNodeId, index, select, camera, dataStatus, onDiagnostic, loadWebGLRenderer } = useBrain()
   const ref = useRef<HTMLDivElement>(null), [size, setSize] = useState({ width: 0, height: 0 }), [visible, setVisible] = useState(true)
   const [failure, setFailure] = useState<string | null>(null), [readyToken, setReadyToken] = useState<object | null>(null), [attempt, setAttempt] = useState(0)
@@ -36,9 +38,11 @@ export function BrainViewport({ renderer, layout, forceWebGLFailure = false, ren
     if (!element) return
     const observer = new ResizeObserver(entries => { const rect = entries[0].contentRect; setSize({ width: Math.round(rect.width), height: Math.round(rect.height) }) })
     observer.observe(element)
-    const intersection = new IntersectionObserver(entries => setVisible(entries[0].isIntersecting && !document.hidden))
+    let intersects = true
+    const updateVisibility = () => { const next = intersects && !document.hidden; setVisible(next); if (!next) camera.pause() }
+    const intersection = new IntersectionObserver(entries => { intersects = entries[0].isIntersecting; updateVisibility() })
     intersection.observe(element)
-    const visibility = () => { setVisible(!document.hidden); if (document.hidden) camera.pause() }
+    const visibility = updateVisibility
     document.addEventListener('visibilitychange', visibility)
     return () => { observer.disconnect(); intersection.disconnect(); document.removeEventListener('visibilitychange', visibility) }
   }, [camera])
@@ -50,8 +54,9 @@ export function BrainViewport({ renderer, layout, forceWebGLFailure = false, ren
   useEffect(() => { onDiagnostic?.({ category: 'renderer-selected', value: choice === 'list' ? 2 : usable3D && ready ? 0 : 1, nodeCount: projection.nodes.length, edgeCount: projection.edges.length }) }, [choice, usable3D, ready, onDiagnostic, projection.nodes.length, projection.edges.length])
   const failed = wantsWebGL && (failure || forceWebGLFailure)
   const fail = (category: string) => { setFailure(category); setReadyToken(null); onDiagnostic?.({ category: 'renderer-fallback', value: 1 }) }
-  return <div ref={ref} className="brain-viewport" tabIndex={0} aria-label="Knowledge visualization. Arrow keys rotate. Plus and minus zoom. Escape clears selection." data-active-renderer={choice === 'list' ? 'list' : usable3D && ready ? 'webgl' : 'svg'}
+  return <div ref={ref} className="brain-viewport" tabIndex={interactive ? 0 : -1} aria-label={interactive ? "Knowledge visualization. Arrow keys rotate. Plus and minus zoom. Escape clears selection." : "Read-only knowledge visualization"} data-active-renderer={choice === 'list' ? 'list' : usable3D && ready ? 'webgl' : 'svg'}
     onKeyDown={event => {
+      if (!interactive) return
       if ((event.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]')) return
       const rotations: Record<string, [number, number]> = { ArrowLeft: [-Math.PI / 12, 0], ArrowRight: [Math.PI / 12, 0], ArrowUp: [0, -Math.PI / 12], ArrowDown: [0, Math.PI / 12] }
       if (rotations[event.key]) { event.preventDefault(); const [yaw, pitch] = rotations[event.key]; camera.send({ type: 'rotate', yaw, pitch }) }
@@ -60,8 +65,8 @@ export function BrainViewport({ renderer, layout, forceWebGLFailure = false, ren
       if (event.key === 'Escape' && selectedNodeId) { event.preventDefault(); event.stopPropagation(); select(null) }
     }}>
     {dataStatus === 'unavailable' ? errorSlot ?? <div className="brain-empty" role="alert"><Icon name="info" /><h2>Data unavailable</h2><p>The host projection is unavailable or invalid. No policy fallback is attempted.</p></div> : projection.nodes.length === 0 ? emptySlot ?? <div className="brain-empty"><Icon name="search" /><h2>No loaded context to display</h2><p>Adjust the filters or supply an authorized graph.</p></div> : choice === 'list' ? <BrainAccessibleList /> : size.width > 0 && size.height > 0 ? <>
-      {(!usable3D || !ready) && <BrainSvgRenderer {...size} active={!usable3D || !ready} />}
-      {usable3D && LazyWebGL && <div className={`brain-webgl-layer ${ready ? 'is-ready' : ''}`}><RendererBoundary key={attempt} onError={() => fail('initialization')}><Suspense fallback={null}><LazyWebGL {...size} active={visible} onReady={() => setReadyToken(initializationToken)} onFailure={fail} renderExtra={renderExtraWebGL} /></Suspense></RendererBoundary></div>}
+      {(!usable3D || !ready) && <BrainSvgRenderer {...size} active={visible && (!usable3D || !ready)} interactive={interactive} showLabels={showLabels} />}
+      {usable3D && LazyWebGL && <div className={`brain-webgl-layer ${ready ? 'is-ready' : ''}`}><RendererBoundary key={attempt} onError={() => fail('initialization')}><Suspense fallback={null}><LazyWebGL {...size} active={visible} interactive={interactive} showLabels={showLabels} onReady={() => setReadyToken(initializationToken)} onFailure={fail} renderExtra={renderExtraWebGL} /></Suspense></RendererBoundary></div>}
       {choice === 'webgl' && !loadWebGLRenderer && <div className="brain-renderer-notice" role="status">3D unsupported: register the optional WebGL renderer. 2D remains available.</div>}
       {usable3D && !ready && <div className="brain-renderer-notice" role="status">{loadingSlot ?? 'Preparing 3D · 2D remains available'}</div>}
       {failed && <div className="brain-renderer-notice" role="status">{unsupportedSlot ?? <>Renderer downgraded to 2D · {forceWebGLFailure ? 'simulated WebGL failure' : failure}</>}<button className="brain-text-button" onClick={() => { setFailure(null); setReadyToken(null); setAttempt(value => value + 1) }} disabled={forceWebGLFailure}>Retry 3D</button></div>}
