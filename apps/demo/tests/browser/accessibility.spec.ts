@@ -1,0 +1,42 @@
+import AxeBuilder from '@axe-core/playwright'
+import { expect, test } from '@playwright/test'
+test('keyboard search, inspect, relationship, tier and overlay workflow', async ({ page }) => {
+  await page.goto('/'); await expect(page.locator('.brain-explorer')).toHaveAttribute('data-ready', 'true')
+  const search = page.getByRole('textbox', { name: 'Search loaded context', exact: true })
+  await search.focus(); await page.keyboard.type('review composer'); await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Review composer' })).toBeVisible()
+  await page.getByRole('tab', { name: /Relationships/ }).focus(); await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: /Declares context · directed Brand voice/ }).focus(); await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { name: 'Brand voice', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Collapse Organization', exact: true }).focus(); await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Expand Organization', exact: true }).focus(); await page.keyboard.press('Enter')
+  await page.evaluate(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('unsupported')) })
+  await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).focus(); await page.keyboard.press('Enter')
+  await expect(page.locator('.brain-explorer')).toHaveAttribute('data-fullscreen', 'overlay')
+  await page.getByRole('button', { name: 'Exit overlay', exact: true }).focus(); await page.keyboard.press('Enter')
+  await expect(page.getByRole('button', { name: 'Enter fullscreen', exact: true })).toBeFocused()
+})
+test('dark and light themes have no serious automated accessibility violations', async ({ page }) => {
+  await page.goto('/'); await expect(page.locator('.brain-explorer')).toHaveAttribute('data-ready', 'true')
+  await page.getByLabel('Renderer', { exact: true }).selectOption('list')
+  for (const theme of ['dark', 'light']) {
+    if (theme === 'light') { await page.getByRole('button', { name: 'Open developer playground' }).click(); await page.getByLabel('Theme', { exact: true }).selectOption('light'); await page.getByRole('button', { name: 'Back to explorer', exact: true }).click() }
+    const result = await new AxeBuilder({ page }).include('.brain-explorer').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()
+    expect(result.violations.map(violation => ({ id: violation.id, impact: violation.impact, nodes: violation.nodes.map(node => node.target) }))).toEqual([])
+  }
+})
+test('narrow viewport and 200 percent zoom remain usable', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/'); await expect(page.locator('.brain-explorer')).toHaveAttribute('data-ready', 'true')
+  await expect(page.getByRole('button', { name: 'Open explorer', exact: true })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Open explorer', exact: true }).click()
+  await page.getByRole('button', { name: 'Close inspector', exact: true }).click()
+  await page.getByRole('button', { name: 'Open accessible node list' }).click()
+  await expect(page.getByRole('dialog', { name: 'Accessible node list' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Exit overlay', exact: true }).click()
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.evaluate(() => { document.documentElement.style.zoom = '2' })
+  await expect(page.getByRole('button', { name: 'Show context navigator', exact: true })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+})

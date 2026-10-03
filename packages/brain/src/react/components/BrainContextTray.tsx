@@ -1,0 +1,15 @@
+'use client'
+import { useState } from 'react'
+import { useBrain } from '../BrainProvider'
+import { Icon, KindGlyph } from './Icon'
+export interface BrainContextTrayProps { onPreview?: (refs: readonly string[]) => void | Promise<void>; previewLabel?: string; simulated?: boolean }
+export function BrainContextTray({ onPreview, previewLabel = 'Preview composition', simulated = false }: BrainContextTrayProps) {
+  const { tray, index, store, select } = useBrain()
+  const [expanded, setExpanded] = useState(false), [busy, setBusy] = useState(false), [message, setMessage] = useState('')
+  const { nodeStyle } = useBrain()
+  return <section className={`brain-tray ${expanded ? 'is-expanded' : ''}`} aria-label="Selected context tray">
+    <div className="brain-tray-header"><button className="brain-tray-toggle" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Icon name="layers" /><strong>Context tray</strong><span className="brain-small-badge">{tray.length}</span><Icon name={expanded ? 'down' : 'up'} /></button><span className="brain-tray-hint">{tray.length ? 'Local selection · display order only' : 'Select a node to start composing'}</span>{simulated && <span className="brain-simulation-badge">Simulated</span>}<button className="brain-button brain-tray-preview" disabled={busy || !tray.length || !onPreview} title={!onPreview ? 'Unsupported: the host has not supplied a preview callback' : undefined} onClick={async () => { if (!onPreview) return; setBusy(true); setMessage(''); try { await onPreview(tray.flatMap(id => { const ref = index.nodes.get(id)?.canonicalRef; return ref ? [ref] : [] })); setMessage(simulated ? 'Simulated scenario applied. No generation request was made.' : 'Host preview callback completed.') } catch { setMessage('Preview unavailable. No successful result is assumed.') } finally { setBusy(false) } }}><Icon name="play" />{busy ? 'Preparing…' : previewLabel}</button></div>
+    {expanded && <div className="brain-tray-content">{!tray.length ? <p className="brain-help">Add caller-selectable references using the inspector. This local tray does not modify stored context or compiler ordering.</p> : <ol>{tray.map((id, position) => { const node = index.nodes.get(id); if (!node) return null; return <li key={id}><KindGlyph style={nodeStyle(node)} /><button className="brain-text-button" onClick={() => select(id)}>{node.label}</button><code>{node.canonicalRef}</code><button className="brain-icon-button" aria-label={`Move ${node.label} earlier`} disabled={position === 0} onClick={() => store.reorderTray(id, -1)}><Icon name="up" /></button><button className="brain-icon-button" aria-label={`Move ${node.label} later`} disabled={position === tray.length - 1} onClick={() => store.reorderTray(id, 1)}><Icon name="down" /></button><button className="brain-icon-button" aria-label={`Remove ${node.label} from context`} onClick={() => store.removeFromTray(id)}><Icon name="close" /></button></li> })}</ol>}{!onPreview && <p className="brain-help">Preview unsupported: no host callback supplied.</p>}</div>}
+    {message && <p role="status" className="brain-tray-message">{message}</p>}
+  </section>
+}

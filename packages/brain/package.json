@@ -1,0 +1,37 @@
+{
+  "name": "@encapsa-dev/brain",
+  "version": "0.1.0",
+  "description": "Authorized knowledge projections, accessible exploration, and optional 3D brain visualization.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "files": ["dist", "README.md"],
+  "sideEffects": ["**/*.css"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./core": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },
+    "./react": { "types": "./dist/react/index.d.ts", "import": "./dist/react/index.js" },
+    "./webgl": { "types": "./dist/webgl/index.d.ts", "import": "./dist/webgl/index.js" },
+    "./adapters/forge": { "types": "./dist/adapters/forge/index.d.ts", "import": "./dist/adapters/forge/index.js" },
+    "./layout-worker": "./dist/layout.worker.js",
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "build": "node scripts/clean.mjs && tsup && node scripts/copy-styles.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config ../../vitest.config.ts",
+    "prepack": "pnpm build"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0 <19.4.0",
+    "react-dom": ">=19.0.0 <19.4.0",
+    "three": ">=0.180.0 <0.187.0",
+    "@react-three/fiber": "^9.8.1"
+  },
+  "peerDependenciesMeta": {
+    "three": { "optional": true },
+    "@react-three/fiber": { "optional": true }
+  },
+  "engines": { "node": ">=22.12.0" }
+}
