@@ -1,6 +1,6 @@
 {
   "name": "@encapsa-dev/brain",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Composable React knowledge graph visualization with an interactive 3D brain, 2D graph, accessible explorer, and compact dashboard previews.",
   "homepage": "https://github.com/encapsa-ai/brain#readme",
   "repository": {
@@ -36,6 +36,7 @@
     "build": "node scripts/clean.mjs && tsup && node scripts/copy-styles.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config ../../vitest.config.ts",
+    "prepublishOnly": "node ../../scripts/release-check.mjs --publish-lifecycle",
     "prepack": "node scripts/sync-package-docs.mjs && pnpm build"
   },
   "peerDependencies": {

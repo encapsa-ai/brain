@@ -27,35 +27,30 @@ The library's TSUP configuration externalizes React/Three/Fiber and marks React 
 
 ## Verification
 
+Use Node 24 and pnpm 12.3.4. From the repository root, run the complete release check:
+
 ```bash
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm build
-pnpm exec playwright install chromium
-pnpm verify:consumer
+pnpm release:check
 ```
 
-For browser tests, start `pnpm start` and run `pnpm test:browser`; override `BRAIN_TEST_URL` when testing a different local/preview host. `verify:consumer` runs its own temporary static servers and browser checks, with strict peer validation and TypeScript declarations.
+The check performs a frozen install, package build, typecheck, lint, unit tests, Chromium setup, the packed React/Fiber consumer matrix, demo build, and browser tests against a temporary production server. It inspects the package tarball, release version, npm registry, and generated files; any failed gate stops the run. For targeted browser debugging, you can still start `pnpm start` and run `pnpm test:browser`; override `BRAIN_TEST_URL` when testing a different local/preview host. `verify:consumer` runs its own temporary static servers and browser checks, with strict peer validation and TypeScript declarations.
 
 Packed SVG consumers intentionally omit `three`, Fiber, and `@types/three`. WebGL consumers explicitly install the matching Fiber generation. Compatibility ranges are not permission to mix React 18 and Fiber 9.
 
-Optional `BRAIN_STATIC_EXPORT=1 pnpm build` creates `out/` for a static review preview. This build-only switch does not change default Next.js hosting or connect any production data. No production secrets/environment deltas are required for 0.1.1.
+Optional `BRAIN_STATIC_EXPORT=1 pnpm build` creates `out/` for a static review preview. This build-only switch does not change default Next.js hosting or connect any production data.
 
 ## Release checklist for maintainers
 
-1. Review and merge the release PR.
-2. Confirm the version in `packages/brain/package.json` and the CHANGELOG heading. Change `Unreleased` to the actual release date when publishing.
-3. Install from the reviewed lockfile and run every verification gate.
-4. Run `pnpm --filter @encapsa-dev/brain pack` and inspect the tarball: library ESM, declarations, worker, styles, README, LICENSE, CHANGELOG, and package manifest only.
-5. Confirm `npm view @encapsa-dev/brain@0.1.1 version` does not already exist. A published version cannot be replaced.
-6. From the reviewed checkout, run `pnpm --filter @encapsa-dev/brain publish --access public` using your normal npm authentication.
-7. Verify npm metadata, exports, license, README animation, and install/import the published version in a clean host.
-8. Tag the reviewed commit and create the GitHub release after successful publication.
+1. Prepare a release PR with a version that has not been published. Update `packages/brain/package.json`, the root CHANGELOG, and public docs. Replace `Unreleased` with the actual release date **before final review and merge**. If that date changes, update the PR and review the new commit.
+2. Run `pnpm release:check` from the repository root. It covers every verification gate, packs and inspects the tarball (library ESM, declarations, worker, styles, README, LICENSE, CHANGELOG, and manifest), and confirms that the release version is absent from npm. If the version is already published, prepare and review a new version; published versions cannot be replaced. Prepack synchronizes the tracked package docs and rebuilds tracked `dist`; if that changes files, review and include them in the release PR, then rerun the check.
+3. Review and merge only after PR CI passes, then confirm the resulting `main` push workflow passes. From a clean, current, reviewed `main` checkout, run `pnpm release:check` again. If it changes tracked files, update and review the release commit before publishing.
+4. From that clean reviewed checkout, run `pnpm --filter @encapsa-dev/brain publish --access public` using your normal npm authentication. The package's `prepublishOnly` hook reruns the same release checks; publish proceeds only if every check passes.
+5. Verify npm metadata, exports, license, README animation, and install/import the published version in a clean host.
+6. Tag the reviewed commit and create the GitHub release after successful publication.
 
-Do not publish from the workspace root. The root is now private and has a `prepublishOnly` guard. Do not use `--ignore-scripts` for release publication: prepack synchronizes public docs/license and builds distribution output.
+Do not publish from the workspace root. The root is private and retains its `prepublishOnly` guard. Do not use `--ignore-scripts` for release publication: it would bypass the package's verification and prepack synchronization.
 
-The npm listing from 0.1.0 will not change merely because this PR is merged. Correct npm metadata and package contents take effect when the maintainer publishes 0.1.1.
+Merging source changes does not update the npm listing. Package metadata and contents change only when the maintainer publishes the scoped package version.
 
 ## First application integration
 

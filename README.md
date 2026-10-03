@@ -19,13 +19,13 @@ Built by [Encapsa AI](https://encapsa.ai). Your application supplies the data; t
 
 ## Installation
 
-Version **0.1.1** is the corrected library release. The initial `0.1.0` npm artifact accidentally packaged the demo workspace; it should not be used as the integration baseline.
+Version **0.1.1** established the corrected library package. The initial `0.1.0` npm artifact accidentally packaged the demo workspace; it should not be used as the integration baseline.
 
-After 0.1.1 is published:
+Install the latest published release:
 
 ```bash
-pnpm add @encapsa-dev/brain@0.1.1
-# npm install @encapsa-dev/brain@0.1.1
+pnpm add @encapsa-dev/brain
+# npm install @encapsa-dev/brain
 ```
 
 React and React DOM are peers. Import the stylesheet once at your application's global stylesheet boundary.
@@ -231,30 +231,23 @@ Authorization belongs to the host. Filtering or hiding a node in the browser doe
 
 ## Development and release
 
-```bash
-pnpm install --frozen-lockfile
-pnpm build:package
-pnpm dev
+Use Node 24 and pnpm 12.3.4. Run the release check from the repository root:
 
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm exec playwright install chromium
-pnpm verify:consumer
-pnpm build
-# With pnpm start running in another terminal:
-pnpm test:browser
+```bash
+pnpm release:check
 ```
 
-The **repository root is a private demo workspace**. Only `packages/brain` is published:
+It runs the frozen install, package build, typecheck, lint, unit tests, Chromium setup, packed React/Fiber consumer matrix, demo build and browser tests against a temporary production server. It also inspects the package artifact, release version, registry, and generated files. A failed check stops the release.
+
+For an interactive development preview, run `pnpm dev` separately after `pnpm build:package`; stop it before the production build.
+
+The **repository root is a private demo workspace**. Only `packages/brain` is published. After the release PR and resulting `main` CI pass, repeat `pnpm release:check` from a clean, reviewed `main` checkout. Then publish with:
 
 ```bash
-pnpm --filter @encapsa-dev/brain pack
-# Maintainer only, after review and merge:
 pnpm --filter @encapsa-dev/brain publish --access public
 ```
 
-Prepack builds the library and copies the canonical README, CHANGELOG, and existing BSD license into the package. See [CONTRIBUTING](https://github.com/encapsa-ai/brain/blob/main/CONTRIBUTING.md), [DEVELOPMENT](https://github.com/encapsa-ai/brain/blob/main/DEVELOPMENT.md), and [verification notes](https://github.com/encapsa-ai/brain/blob/main/docs/verification.md).
+The package's `prepublishOnly` hook repeats the release check during publish; publication proceeds only when it passes. The root's publish guard remains in place. Prepack builds the library and copies the canonical README, CHANGELOG, and existing BSD license into the package. See [CONTRIBUTING](https://github.com/encapsa-ai/brain/blob/main/CONTRIBUTING.md), [DEVELOPMENT](https://github.com/encapsa-ai/brain/blob/main/DEVELOPMENT.md), and [verification notes](https://github.com/encapsa-ai/brain/blob/main/docs/verification.md).
 
 ## License and community
 
