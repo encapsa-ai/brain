@@ -15,4 +15,24 @@ describe('bounded layout geometry', () => {
   it('rejects stale protocol, scope and revision results', async () => { const port: LayoutWorkerPort = { onmessage: null, onerror: null, terminate() {}, postMessage(message) { queueMicrotask(() => port.onmessage?.({ data: { protocol: 1, requestId: message.requestId, result: { ...brainLayout(input), scopeKey: 'other' } } })) } }; const fallback = vi.fn(); const result = await createLayoutController({ workerFactory: () => port, timeoutMs: 5, onFallback: fallback }).run(input, 'brain'); expect(result?.scopeKey).toBe('s'); expect(fallback).toHaveBeenCalledOnce() })
   it('discards a cancelled pending worker', async () => { const terminate = vi.fn(); const controller = createLayoutController({ workerFactory: () => ({ onmessage: null, onerror: null, postMessage() {}, terminate }), timeoutMs: 50 }); const pending = controller.run(input, 'brain'); controller.cancel(); expect(await pending).toBeNull(); expect(terminate).toHaveBeenCalled() })
   it('bounds custom adapters too', async () => { const result = await createLayoutController({ timeoutMs: 5 }).run(input, 'cluster', () => new Promise(() => {})); expect(result).toEqual(clusterLayout(input)) })
+  it('aborts custom adapter work when its time budget expires', async () => {
+    let signal: AbortSignal | undefined
+    const result = await createLayoutController({ timeoutMs: 5 }).run(input, 'brain', next => { signal = next.signal; return new Promise(() => {}) })
+    expect(result).toEqual(brainLayout(input))
+    expect(signal?.aborted).toBe(true)
+  })
+  it('immediately cancels custom adapters even if they ignore abort', async () => {
+    let signal: AbortSignal | undefined
+    const controller = createLayoutController({ timeoutMs: 50 })
+    const pending = controller.run(input, 'brain', next => { signal = next.signal; return new Promise(() => {}) })
+    controller.cancel()
+    expect(signal?.aborted).toBe(true)
+    expect(await pending).toBeNull()
+  })
+  it('rejects nonfinite coordinates from a custom adapter', async () => {
+    const onFallback = vi.fn()
+    const result = await createLayoutController({ onFallback }).run(input, 'brain', () => ({ ...brainLayout(input), positions: { n0: [NaN, 0, 0] } }))
+    expect(result).toEqual(brainLayout(input))
+    expect(onFallback).toHaveBeenCalledOnce()
+  })
 })

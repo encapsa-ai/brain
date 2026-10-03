@@ -55,7 +55,10 @@ export function BrainExplorerShell(props: BrainExplorerShellProps) {
   const searchSelect = (id: string) => { store.setFilters({ ...filters, query: '' }); select(id); root.current?.querySelector<HTMLElement>('.brain-viewport')?.focus() }
   const edge = graph.edges.find(item => item.id === selectedEdgeId)
   return <div ref={root} className={`brain-explorer ${props.className ?? ''} ${compact ? 'brain-compact' : ''} ${narrow ? 'brain-narrow' : ''} ${fullscreen.mode === 'overlay' ? 'brain-expanded-overlay' : ''}`} data-theme={props.theme ?? 'dark'} data-ready={hydrated} data-fullscreen={fullscreen.mode} data-scope={graph.scopeKey} style={props.style} tabIndex={-1} role={fullscreen.mode === 'overlay' ? 'dialog' : 'region'} aria-modal={fullscreen.mode === 'overlay' ? true : undefined} aria-label={fullscreen.mode === 'overlay' ? 'Expanded explorer overlay, not native fullscreen' : 'Brain Explorer'}
+    onPointerDownCapture={event => { if (!(event.target as HTMLElement).closest('.brain-auto-rotate')) camera.pause() }}
+    onKeyDownCapture={event => { if (!(event.target as HTMLElement).closest('.brain-auto-rotate')) camera.pause() }}
     onKeyDown={event => {
+      if (event.key === '/' && !(event.target as HTMLElement).closest('input,textarea,select,[contenteditable=true]')) { event.preventDefault(); search.current?.focus(); return }
       if (event.key !== 'Escape') return
       if (filters.query) { event.preventDefault(); store.setFilters({ ...filters, query: '' }); search.current?.focus() }
       else if (listOpen) { event.preventDefault(); setListOpen(false); listTrigger.current?.focus() }
@@ -88,7 +91,7 @@ export function BrainExplorerShell(props: BrainExplorerShellProps) {
       {selectedNodeId && !compact && <div className={narrow ? 'brain-inspector-mobile' : 'brain-inspector-container'}><BrainInspector renderNodeDetails={props.renderNodeDetails} renderNodeActions={props.renderNodeActions} onClose={() => root.current?.querySelector<HTMLElement>('.brain-viewport')?.focus()} /></div>}
       {listOpen && <><button className="brain-drawer-scrim" aria-label="Dismiss accessible node list" onClick={() => setListOpen(false)} /><div className="brain-list-drawer" ref={drawer} role="dialog" aria-modal="true" aria-label="Accessible node list"><div className="brain-panel-heading"><span>Loaded context</span><button className="brain-icon-button" aria-label="Close accessible node list" onClick={() => { setListOpen(false); listTrigger.current?.focus() }}><Icon name="close" /></button></div><BrainAccessibleList /></div></>}
     </div>
-    <div className="brain-statusbar"><span><i className="brain-status-dot" />{graph.completeness === 'complete' ? 'Loaded projection' : 'Partial inventory'}<span className="brain-status-divider">/</span>{graph.nodes.length.toLocaleString()} nodes<span className="brain-status-divider">/</span>{graph.edges.length.toLocaleString()} relationships</span><span>{graph.nodes.length > 1500 && projection.nodes.length < graph.nodes.length ? 'Level-of-detail aggregation · ' : ''}Scope isolated<span className="brain-status-divider">·</span>No network calls</span></div>
+    <div className="brain-statusbar"><span><i className="brain-status-dot" />{graph.completeness === 'complete' ? 'Loaded projection' : 'Partial inventory'}<span className="brain-status-divider">/</span>{graph.nodes.length.toLocaleString()} nodes<span className="brain-status-divider">/</span>{graph.edges.length.toLocaleString()} relationships</span><span>{graph.nodes.length > 1500 && projection.nodes.length < graph.nodes.length ? 'Level-of-detail aggregation · ' : ''}Scope isolated<span className="brain-status-divider">·</span>Host-authorized projection</span></div>
     {props.children}
   </div>
 }

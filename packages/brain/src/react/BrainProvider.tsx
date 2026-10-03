@@ -107,12 +107,12 @@ export function useBrainLayout(dimensions: 2 | 3 = 3): LayoutResult {
   const key = `${graph.scopeKey}:${view.layout}:${dimensions}:${layoutSeed}`
   const bounded = useMemo(() => (view.layout === 'brain' ? brainLayout : clusterLayout)({ ...input, previous: previous.current?.key === key ? previous.current.value.positions : undefined }), [input, view.layout, key])
   const [customResult, setCustomResult] = useState<{ key: string; result: LayoutResult } | null>(null)
-  useLayoutEffect(() => { previous.current = { key, value: bounded } }, [key, bounded])
+  useLayoutEffect(() => { previous.current = { key, value: customResult?.key === key && customResult.result.revision === graph.revision ? customResult.result : bounded } }, [key, bounded, customResult, graph.revision])
   useEffect(() => {
     if (!layoutAdapter && !layoutWorkerFactory) return
     const controller = createLayoutController({ workerFactory: layoutWorkerFactory, onFallback: () => onDiagnostic?.({ category: 'layout', value: 0 }) })
     const abort = new AbortController()
-    void controller.run({ ...input, signal: abort.signal }, view.layout, layoutAdapter).then(result => { if (result && !abort.signal.aborted) setCustomResult({ key, result }) })
+    void controller.run({ ...input, previous: previous.current?.key === key ? previous.current.value.positions : undefined, signal: abort.signal }, view.layout, layoutAdapter).then(result => { if (result && !abort.signal.aborted) setCustomResult({ key, result }) })
     return () => { abort.abort(); controller.cancel() }
   }, [input, layoutAdapter, layoutWorkerFactory, view.layout, key, onDiagnostic])
   return customResult?.key === key && customResult.result.revision === graph.revision ? customResult.result : bounded

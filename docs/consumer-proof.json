@@ -1,0 +1,30 @@
+{
+  "consumer": "/tmp/brain-package-proof-B71q9p/consumer",
+  "tarball": "/tmp/brain-package-proof-B71q9p/encapsa-dev-brain-0.1.0.tgz",
+  "packageFiles": [
+    "README.md",
+    "dist/adapters/forge/index.d.ts",
+    "dist/adapters/forge/index.js",
+    "dist/chunk-BXJOCFL5.js",
+    "dist/chunk-MXXIXEKJ.js",
+    "dist/core/index.d.ts",
+    "dist/core/index.js",
+    "dist/index.d.ts",
+    "dist/index.js",
+    "dist/layout.worker.d.ts",
+    "dist/layout.worker.js",
+    "dist/react/index.d.ts",
+    "dist/react/index.js",
+    "dist/renderer-types-D_zZdd87.d.ts",
+    "dist/styles.css",
+    "dist/types-CxL1neFM.d.ts",
+    "dist/webgl/index.d.ts",
+    "dist/webgl/index.js",
+    "package.json"
+  ],
+  "optionalGraphicsInstalled": false,
+  "viteBuild": "passed",
+  "strictDeclarationsWithoutGraphicsTypes": "passed",
+  "packedSsrImports": "passed",
+  "node": "v24.16.0"
+}

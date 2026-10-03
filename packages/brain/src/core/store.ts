@@ -70,18 +70,24 @@ export function createBrainStore(initialGraph: BrainGraph, initial: BrainStoreOp
     if (!external) options.onSelectedNodeChange?.(nodeId)
     if (nodeId) void requestDetails(nodeId)
   }
-  function replaceGraph(graph: BrainGraph) {
+  function applyGraph(graph: BrainGraph) {
     const scopeChanged = graph.scopeKey !== snapshot.graph.scopeKey
     const revisionChanged = graph.revision !== snapshot.graph.revision
-    if (scopeChanged || revisionChanged) invalidateDetails()
-    if (scopeChanged) { graphAbort?.abort(); graphGeneration++; unsubscribe?.(); unsubscribe = undefined }
     const diagnostics = validateGraph(graph)
+    const resetContext = scopeChanged || diagnostics.length > 0
+    if (resetContext || revisionChanged) invalidateDetails()
     const safeGraph = diagnostics.length ? { ...graph, nodes: [], edges: [] } : graph
     emit({ graph: safeGraph, diagnostics, dataStatus: diagnostics.length ? 'unavailable' : 'ready',
-      ...(scopeChanged || diagnostics.length ? { selectedNodeId: null, selectedEdgeId: null, filters: defaultFilters, tray: [], expandedGroups: [], observation: null, details: { status: 'idle' } as DetailState } : {}),
-      ...(revisionChanged ? { details: { status: 'idle' } as DetailState, selectedEdgeId: null, tray: snapshot.tray.filter(id => safeGraph.nodes.some(node => node.id === id)) } : {}),
+      ...(resetContext ? { selectedNodeId: null, selectedEdgeId: null, filters: defaultFilters, tray: [], expandedGroups: [], observation: null, details: { status: 'idle' } as DetailState } : {}),
+      ...(revisionChanged && !resetContext ? { details: { status: 'idle' } as DetailState, selectedEdgeId: null, tray: snapshot.tray.filter(id => safeGraph.nodes.some(node => node.id === id)) } : {}),
     })
-    if (scopeChanged) options.onSelectedNodeChange?.(null)
+    if (resetContext) options.onSelectedNodeChange?.(null)
+    return diagnostics.length === 0
+  }
+  function replaceGraph(graph: BrainGraph) {
+    graphAbort?.abort(); graphAbort = null; graphGeneration++
+    unsubscribe?.(); unsubscribe = undefined
+    applyGraph(graph)
   }
   function failClosed(scopeKey: string) {
     invalidateDetails(); graphAbort?.abort(); graphGeneration++; unsubscribe?.(); unsubscribe = undefined
@@ -100,13 +106,16 @@ export function createBrainStore(initialGraph: BrainGraph, initial: BrainStoreOp
       const graph = await source.loadGraph({ scopeKey, cursor, signal: controller.signal })
       if (disposed || controller.signal.aborted || generation !== graphGeneration) return
       if (graph.scopeKey !== scopeKey) { failClosed(scopeKey); return }
-      replaceGraph(graph)
+      if (!applyGraph(graph)) return
       let sequence = -1
-      unsubscribe = source.subscribe?.({ scopeKey, onRevision(next, nextSequence) {
-        if (disposed || generation !== graphGeneration || snapshot.graph.scopeKey !== scopeKey || nextSequence <= sequence) return
+      const stop = source.subscribe?.({ scopeKey, onRevision(next, nextSequence) {
+        if (disposed || generation !== graphGeneration || snapshot.graph.scopeKey !== scopeKey || !Number.isSafeInteger(nextSequence) || nextSequence <= sequence) return
         if (next.scopeKey !== scopeKey) { failClosed(scopeKey); return }
-        sequence = nextSequence; replaceGraph(next)
+        sequence = nextSequence
+        if (!applyGraph(next)) failClosed(scopeKey)
       } })
+      if (generation === graphGeneration && !disposed) unsubscribe = stop
+      else stop?.()
     } catch { if (!disposed && generation === graphGeneration) failClosed(scopeKey) }
   }
   return {
